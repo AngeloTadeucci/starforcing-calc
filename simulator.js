@@ -47,8 +47,66 @@
     return [s, m, d, b];
   }
 
+  function costMultiplier(currentStar, opts) {
+    let mult = 1;
+
+    if (currentStar <= 15) {
+      if (opts.mvp === "silver")  mult -= 0.03;
+      if (opts.mvp === "gold")    mult -= 0.05;
+      if (opts.mvp === "diamond") mult -= 0.10;
+    }
+    if (opts.event === "thirtyOff") mult -= 0.30;
+
+    const sgActive =
+      opts.safeguard &&
+      currentStar >= 15 && currentStar <= 17 &&
+      !(opts.event === "fivetenfifteen" && currentStar === 15);
+    if (sgActive) mult += 2;
+
+    return mult;
+  }
+
+  function simulateOnce(currentStar, targetStar, itemLevel, opts) {
+    let star = currentStar;
+    let totalCost = 0;
+    let attempts = 0;
+    let booms = 0;
+
+    while (star < targetStar) {
+      const guaranteed =
+        opts.event === "fivetenfifteen" &&
+        (star === 5 || star === 10 || star === 15);
+
+      const cost = Math.round(baseCost(star, itemLevel) * costMultiplier(star, opts));
+      totalCost += cost;
+      attempts += 1;
+
+      if (guaranteed) {
+        star += 1;
+        continue;
+      }
+
+      const [s, m, d /*, b */] = applyRateModifiers(star, opts);
+      const r = Math.random();
+      if (r < s) {
+        star += 1;
+      } else if (r < s + m) {
+        // maintain
+      } else if (r < s + m + d) {
+        star = Math.max(0, star - 1);
+      } else {
+        star = boomDropStar(star);
+        booms += 1;
+      }
+    }
+
+    return { totalCost, attempts, booms };
+  }
+
   global.SF = global.SF || {};
   global.SF.baseCost = baseCost;
   global.SF.boomDropStar = boomDropStar;
   global.SF.applyRateModifiers = applyRateModifiers;
+  global.SF.costMultiplier = costMultiplier;
+  global.SF.simulateOnce = simulateOnce;
 })(window);
