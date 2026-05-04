@@ -38,15 +38,6 @@ html, body {
   margin-bottom: 32px;
 }
 
-.eyebrow {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 10px;
-}
-
 h1 {
   font-size: 30px;
   font-weight: 500;
@@ -58,7 +49,6 @@ h1 {
 .subtitle {
   color: var(--muted);
   margin: 0;
-  max-width: 52ch;
   font-size: 14px;
 }
 
