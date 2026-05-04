@@ -1,0 +1,15 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>SF tests</title></head>
+<body><pre id="out"></pre>
+<script src="rates.js"></script>
+<script src="simulator.js"></script>
+<script>
+  const log = (...a) => document.getElementById("out").textContent += a.join(" ") + "\n";
+  log("baseCost(17, 160):", SF.baseCost(17, 160));
+  log("baseCost(0, 160):", SF.baseCost(0, 160));
+  log("boomDropStar(22):", SF.boomDropStar(22));   // 17
+  log("boomDropStar(20):", SF.boomDropStar(20));   // 15
+  log("boomDropStar(15):", SF.boomDropStar(15));   // 12
+  log("boomDropStar(26):", SF.boomDropStar(26));   // 20
+</script>
+</body></html>
