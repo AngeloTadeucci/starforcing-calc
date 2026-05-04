@@ -103,10 +103,72 @@
     return { totalCost, attempts, booms };
   }
 
+  function percentile(sortedAsc, p) {
+    if (sortedAsc.length === 0) return 0;
+    const idx = Math.min(sortedAsc.length - 1, Math.floor(p * sortedAsc.length));
+    return sortedAsc[idx];
+  }
+
+  function bucketize(sortedAsc, bucketCount) {
+    if (sortedAsc.length === 0) return [];
+    const min = sortedAsc[0];
+    const max = sortedAsc[sortedAsc.length - 1];
+    if (max === min) return [{ from: min, to: max, count: sortedAsc.length }];
+    const width = (max - min) / bucketCount;
+    const buckets = [];
+    for (let i = 0; i < bucketCount; i++) {
+      buckets.push({ from: min + i * width, to: min + (i + 1) * width, count: 0 });
+    }
+    for (const v of sortedAsc) {
+      let i = Math.floor((v - min) / width);
+      if (i >= bucketCount) i = bucketCount - 1;
+      buckets[i].count += 1;
+    }
+    return buckets;
+  }
+
+  function runTrials(input) {
+    const { currentStar, targetStar, itemLevel, trials } = input;
+    const opts = {
+      starCatching: !!input.starCatching,
+      safeguard:    !!input.safeguard,
+      mvp:          input.mvp || "none",
+      event:        input.event || "none",
+    };
+
+    const costs = new Array(trials);
+    let sumCost = 0, sumBooms = 0, sumAttempts = 0;
+
+    for (let i = 0; i < trials; i++) {
+      const t = simulateOnce(currentStar, targetStar, itemLevel, opts);
+      costs[i] = t.totalCost;
+      sumCost += t.totalCost;
+      sumBooms += t.booms;
+      sumAttempts += t.attempts;
+    }
+
+    costs.sort((a, b) => a - b);
+
+    return {
+      trials,
+      avgCost:     sumCost / trials,
+      medianCost:  percentile(costs, 0.5),
+      p25:         percentile(costs, 0.25),
+      p75:         percentile(costs, 0.75),
+      p95:         percentile(costs, 0.95),
+      minCost:     costs[0],
+      maxCost:     costs[costs.length - 1],
+      avgBooms:    sumBooms / trials,
+      avgAttempts: sumAttempts / trials,
+      buckets:     bucketize(costs, 30),
+    };
+  }
+
   global.SF = global.SF || {};
   global.SF.baseCost = baseCost;
   global.SF.boomDropStar = boomDropStar;
   global.SF.applyRateModifiers = applyRateModifiers;
   global.SF.costMultiplier = costMultiplier;
   global.SF.simulateOnce = simulateOnce;
+  global.SF.runTrials = runTrials;
 })(window);
