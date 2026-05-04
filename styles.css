@@ -418,6 +418,39 @@ button.is-running {
   }
 }
 
+/* ── Colophon ──────────────────────────────────────────── */
+.colophon {
+  margin-top: 56px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+
+.colophon p {
+  margin: 0 0 8px;
+  max-width: 60ch;
+}
+
+.colophon a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.colophon a:hover {
+  color: var(--accent-2);
+  border-bottom-color: var(--accent-2);
+}
+
+.colophon .fineprint {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--muted-2);
+  margin-top: 14px;
+}
+
 /* ── Small screens ─────────────────────────────────────── */
 @media (max-width: 540px) {
   .container { padding: 36px 18px 56px; }
