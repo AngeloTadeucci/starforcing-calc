@@ -21,6 +21,15 @@
     const base = global.KMS_RATES[currentStar];
     let s = base[0], m = base[1], d = base[2], b = base[3];
 
+    // Boom reduction (Shining Star Force or standalone): 30% of boom moves to maintain, at <= 21 stars.
+    if (
+      (opts.event === "boomReduction" || opts.event === "shiningStarForce") &&
+      currentStar <= 21
+    ) {
+      m += b * 0.3;
+      b *= 0.7;
+    }
+
     const sgActive =
       opts.safeguard &&
       currentStar >= 15 && currentStar <= 17 &&
@@ -55,7 +64,7 @@
       if (opts.mvp === "gold")    mult -= 0.05;
       if (opts.mvp === "diamond") mult -= 0.10;
     }
-    if (opts.event === "thirtyOff") mult -= 0.30;
+    if (opts.event === "thirtyOff" || opts.event === "shiningStarForce") mult -= 0.30;
 
     const sgActive =
       opts.safeguard &&
