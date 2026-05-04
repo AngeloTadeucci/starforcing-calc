@@ -231,6 +231,14 @@ button {
 
 button:hover { background: var(--accent-2); }
 button:active { transform: translateY(0.5px); }
+button:disabled,
+button.is-running {
+  cursor: progress;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
 
 .error {
   color: var(--error);

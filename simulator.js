@@ -1,4 +1,4 @@
-// Pure simulation logic. No DOM access. Uses KMS_RATES and COST_COEFS from rates.js.
+// Pure simulation logic. No DOM access. Uses GMS_RATES and COST_COEFS from rates.js.
 
 (function (global) {
   function baseCost(currentStar, itemLevel) {
@@ -18,8 +18,8 @@
   }
 
   function applyRateModifiers(currentStar, opts) {
-    const base = global.KMS_RATES[currentStar];
-    let s = base[0], m = base[1], d = base[2], b = base[3];
+    const base = global.GMS_RATES[currentStar];
+    let s = base[0], m = base[1], b = base[2];
 
     // Boom reduction (Shining Star Force or standalone): 30% of boom moves to maintain, at <= 21 stars.
     if (
@@ -42,18 +42,12 @@
     if (opts.starCatching) {
       s = Math.min(1, s * 1.05);
       const left = 1 - s;
-      if (d > 0) {
-        const denom = d + b;
-        d = denom > 0 ? d * left / denom : 0;
-        b = left - d;
-      } else {
-        const denom = m + b;
-        m = denom > 0 ? m * left / denom : left;
-        b = left - m;
-      }
+      const denom = m + b;
+      m = denom > 0 ? m * left / denom : left;
+      b = left - m;
     }
 
-    return [s, m, d, b];
+    return [s, m, b];
   }
 
   function costMultiplier(currentStar, opts) {
@@ -76,7 +70,8 @@
   }
 
   function simulateOnce(currentStar, targetStar, itemLevel, opts) {
-    let star = currentStar;
+    let star = opts.noBoom22 && currentStar < 22 ? 22 : currentStar;
+    const floor = opts.noBoom22 ? 22 : 0;
     let totalCost = 0;
     let attempts = 0;
     let booms = 0;
@@ -95,16 +90,14 @@
         continue;
       }
 
-      const [s, m, d /*, b */] = applyRateModifiers(star, opts);
+      const [s, m] = applyRateModifiers(star, opts);
       const r = Math.random();
       if (r < s) {
         star += 1;
       } else if (r < s + m) {
         // maintain
-      } else if (r < s + m + d) {
-        star = Math.max(0, star - 1);
       } else {
-        star = boomDropStar(star);
+        star = Math.max(floor, boomDropStar(star));
         booms += 1;
       }
     }
@@ -150,53 +143,72 @@
     return bucketize(sortedAsc, maxBuckets);
   }
 
-  function runTrials(input) {
-    const { currentStar, targetStar, itemLevel, trials } = input;
-    const opts = {
-      starCatching: !!input.starCatching,
-      safeguard:    !!input.safeguard,
-      mvp:          input.mvp || "none",
-      event:        input.event || "none",
-    };
+  function runTrials(input, options) {
+    const chunkSize = (options && options.chunkSize) || 2000;
+    const onProgress = options && options.onProgress;
 
-    const costs = new Array(trials);
-    const booms = new Array(trials);
-    let sumCost = 0, sumBooms = 0, sumAttempts = 0;
+    return new Promise((resolve) => {
+      const { currentStar, targetStar, itemLevel, trials } = input;
+      const opts = {
+        starCatching: !!input.starCatching,
+        safeguard:    !!input.safeguard,
+        noBoom22:     !!input.noBoom22,
+        mvp:          input.mvp || "none",
+        event:        input.event || "none",
+      };
 
-    for (let i = 0; i < trials; i++) {
-      const t = simulateOnce(currentStar, targetStar, itemLevel, opts);
-      costs[i] = t.totalCost;
-      booms[i] = t.booms;
-      sumCost += t.totalCost;
-      sumBooms += t.booms;
-      sumAttempts += t.attempts;
-    }
+      const costs = new Array(trials);
+      const booms = new Array(trials);
+      let sumCost = 0, sumBooms = 0, sumAttempts = 0;
+      let i = 0;
 
-    costs.sort((a, b) => a - b);
-    booms.sort((a, b) => a - b);
+      function runChunk() {
+        const end = Math.min(i + chunkSize, trials);
+        for (; i < end; i++) {
+          const t = simulateOnce(currentStar, targetStar, itemLevel, opts);
+          costs[i] = t.totalCost;
+          booms[i] = t.booms;
+          sumCost += t.totalCost;
+          sumBooms += t.booms;
+          sumAttempts += t.attempts;
+        }
 
-    return {
-      trials,
-      avgCost:     sumCost / trials,
-      medianCost:  percentile(costs, 0.5),
-      p25:         percentile(costs, 0.25),
-      p75:         percentile(costs, 0.75),
-      p95:         percentile(costs, 0.95),
-      minCost:     costs[0],
-      maxCost:     costs[costs.length - 1],
+        if (onProgress) onProgress(i, trials);
 
-      avgBooms:    sumBooms / trials,
-      medianBooms: percentile(booms, 0.5),
-      p25Booms:    percentile(booms, 0.25),
-      p75Booms:    percentile(booms, 0.75),
-      p95Booms:    percentile(booms, 0.95),
-      minBooms:    booms[0],
-      maxBooms:    booms[booms.length - 1],
+        if (i < trials) {
+          setTimeout(runChunk, 0);
+          return;
+        }
 
-      avgAttempts: sumAttempts / trials,
-      buckets:     bucketize(costs, 30),
-      boomBuckets: bucketizeIntegers(booms, 30),
-    };
+        costs.sort((a, b) => a - b);
+        booms.sort((a, b) => a - b);
+
+        resolve({
+          trials,
+          avgCost:     sumCost / trials,
+          medianCost:  percentile(costs, 0.5),
+          p25:         percentile(costs, 0.25),
+          p75:         percentile(costs, 0.75),
+          p95:         percentile(costs, 0.95),
+          minCost:     costs[0],
+          maxCost:     costs[costs.length - 1],
+
+          avgBooms:    sumBooms / trials,
+          medianBooms: percentile(booms, 0.5),
+          p25Booms:    percentile(booms, 0.25),
+          p75Booms:    percentile(booms, 0.75),
+          p95Booms:    percentile(booms, 0.95),
+          minBooms:    booms[0],
+          maxBooms:    booms[booms.length - 1],
+
+          avgAttempts: sumAttempts / trials,
+          buckets:     bucketize(costs, 30),
+          boomBuckets: bucketizeIntegers(booms, 30),
+        });
+      }
+
+      runChunk();
+    });
   }
 
   global.SF = global.SF || {};

@@ -25,6 +25,7 @@
       event:        $("event").value,
       starCatching: $("starCatching").checked,
       safeguard:    $("safeguard").checked,
+      noBoom22:     $("noBoom22").checked,
     };
   }
 
@@ -138,7 +139,7 @@
     ctx.fillText(String(maxCount), padL - 6, padT);
   }
 
-  function onSubmit(e) {
+  async function onSubmit(e) {
     e.preventDefault();
     const errEl = $("error");
     errEl.textContent = "";
@@ -150,11 +151,27 @@
       return;
     }
 
-    const stats = SF.runTrials(input);
-    $("results").classList.remove("hidden");
-    renderResults(stats);
-    drawHistogram("histogram", stats.buckets, fmtAxis);
-    drawHistogram("histogram-booms", stats.boomBuckets, (n) => String(Math.round(n)));
+    const btn = $("calc");
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.classList.add("is-running");
+    btn.textContent = `Running 0 / ${input.trials.toLocaleString("en-US")}`;
+
+    try {
+      const stats = await SF.runTrials(input, {
+        onProgress: (done, total) => {
+          btn.textContent = `Running ${done.toLocaleString("en-US")} / ${total.toLocaleString("en-US")}`;
+        },
+      });
+      $("results").classList.remove("hidden");
+      renderResults(stats);
+      drawHistogram("histogram", stats.buckets, fmtAxis);
+      drawHistogram("histogram-booms", stats.boomBuckets, (n) => String(Math.round(n)));
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove("is-running");
+      btn.textContent = originalLabel;
+    }
   }
 
   document.addEventListener("DOMContentLoaded", () => {
