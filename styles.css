@@ -422,13 +422,37 @@ button.is-running {
 .colophon {
   margin-top: 56px;
   color: var(--muted);
-  font-size: 12.5px;
-  line-height: 1.7;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
-.colophon p {
-  margin: 0 0 8px;
-  max-width: 60ch;
+.sources {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.source {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 16px;
+  align-items: baseline;
+}
+
+.source dt {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  margin: 0;
+}
+
+.source dd {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
 }
 
 .colophon a {
@@ -443,12 +467,25 @@ button.is-running {
   border-bottom-color: var(--accent-2);
 }
 
+.src-sep {
+  color: var(--muted-2);
+  margin: 0 6px;
+}
+
 .colophon .fineprint {
   font-family: var(--mono);
   font-size: 10.5px;
   letter-spacing: 0.04em;
   color: var(--muted-2);
-  margin-top: 14px;
+  margin: 18px 0 0;
+  max-width: 60ch;
+}
+
+@media (max-width: 540px) {
+  .source {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
 }
 
 /* ── Small screens ─────────────────────────────────────── */
