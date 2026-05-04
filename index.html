@@ -3,79 +3,150 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Star Force Calculator (GMS)</title>
+  <title>Star Force Calculator — GMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="container">
-    <h1>Star Force Calculator <span class="badge">GMS</span></h1>
-    <p class="subtitle">Monte Carlo simulator. Rates and cost formula match the current GMS Star Force.</p>
+    <header class="masthead">
+      <div class="eyebrow">GMS · Monte Carlo</div>
+      <h1>Star Force Calculator</h1>
+      <p class="subtitle">Simulates star-force outcomes against the current GMS rate and cost tables.</p>
+    </header>
 
-    <form id="sf-form" class="form">
-      <div class="row">
-        <label>Item Level
-          <input type="number" id="itemLevel" min="1" max="300" value="160" />
-        </label>
-        <label>Trials
-          <input type="number" id="trials" min="1" max="100000" value="1000" />
-        </label>
-      </div>
+    <form id="sf-form" class="form" novalidate>
+      <fieldset>
+        <legend>Equipment</legend>
+        <div class="row">
+          <label>
+            <span class="field-label">Item level</span>
+            <input type="number" id="itemLevel" min="1" max="300" value="200" />
+          </label>
+          <label>
+            <span class="field-label">Trials</span>
+            <select id="trials">
+              <option value="100">100</option>
+              <option value="500">500</option>
+              <option value="1000" selected>1,000</option>
+              <option value="5000">5,000</option>
+              <option value="10000">10,000</option>
+              <option value="50000">50,000</option>
+              <option value="100000">100,000</option>
+            </select>
+          </label>
+        </div>
+      </fieldset>
 
-      <div class="row">
-        <label>Current &#9733;
-          <input type="number" id="currentStar" min="0" max="29" value="0" />
-        </label>
-        <label>Target &#9733;
-          <input type="number" id="targetStar" min="1" max="30" value="22" />
-        </label>
-      </div>
+      <fieldset>
+        <legend>Star range</legend>
+        <div class="row">
+          <label>
+            <span class="field-label">Current ★</span>
+            <input type="number" id="currentStar" min="0" max="29" value="0" />
+          </label>
+          <label>
+            <span class="field-label">Target ★</span>
+            <input type="number" id="targetStar" min="1" max="30" value="22" />
+          </label>
+        </div>
+      </fieldset>
 
-      <div class="row">
-        <label>MVP Discount
-          <select id="mvp">
-            <option value="none">None</option>
-            <option value="silver">Silver (3%)</option>
-            <option value="gold">Gold (5%)</option>
-            <option value="diamond">Diamond (10%)</option>
-          </select>
-        </label>
-        <label>Event
-          <select id="event">
-            <option value="none">None</option>
-            <option value="fivetenfifteen">5/10/15&#9733; guaranteed</option>
-            <option value="thirtyOff">30% off cost</option>
-            <option value="boomReduction">30% boom reduction</option>
-            <option value="shiningStarForce">Shining Star Force (30% off + 30% boom red.)</option>
-          </select>
-        </label>
-      </div>
+      <fieldset>
+        <legend>Modifiers</legend>
+        <div class="row">
+          <label>
+            <span class="field-label">MVP discount</span>
+            <select id="mvp">
+              <option value="none">None</option>
+              <option value="silver">Silver — 3%</option>
+              <option value="gold">Gold — 5%</option>
+              <option value="diamond">Diamond — 10%</option>
+            </select>
+          </label>
+          <label>
+            <span class="field-label">Event</span>
+            <select id="event">
+              <option value="none">None</option>
+              <option value="fivetenfifteen">5 / 10 / 15★ guaranteed</option>
+              <option value="thirtyOff">30% off cost</option>
+              <option value="boomReduction">30% boom reduction</option>
+              <option value="shiningStarForce">Shining Star Force — 30% off + 30% boom red.</option>
+            </select>
+          </label>
+        </div>
 
-      <div class="row checks">
-        <label><input type="checkbox" id="starCatching" /> Star Catching (+5%)</label>
-        <label><input type="checkbox" id="safeguard" /> Safeguard (15&rarr;18)</label>
-      </div>
+        <div class="row checks">
+          <label class="check">
+            <input type="checkbox" id="starCatching" checked />
+            <span>Star catching <em>(+5%)</em></span>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="safeguard" checked />
+            <span>Safeguard <em>(15→16, 16→17, 17→18)</em></span>
+          </label>
+        </div>
+      </fieldset>
 
-      <div class="row">
-        <button type="submit" id="calc">Calculate</button>
+      <div class="actions">
+        <button type="submit" id="calc">Run simulation</button>
         <span id="error" class="error" role="alert" aria-live="polite"></span>
       </div>
     </form>
 
-    <section id="results" class="results hidden">
-      <div class="metrics">
-        <div class="card"><div class="label">Average cost</div><div class="value" id="m-avg">&mdash;</div></div>
-        <div class="card"><div class="label">Median cost</div><div class="value" id="m-median">&mdash;</div></div>
-        <div class="card"><div class="label">Avg booms</div><div class="value" id="m-booms">&mdash;</div></div>
-        <div class="card"><div class="label">Avg attempts</div><div class="value" id="m-attempts">&mdash;</div></div>
+    <section id="results" class="results hidden" aria-live="polite">
+      <div class="section-head">
+        <span class="rule"></span>
+        <span class="section-title">Results</span>
+        <span class="rule"></span>
       </div>
 
-      <table class="percentiles">
-        <thead><tr><th>Percentile</th><th>Cost</th></tr></thead>
-        <tbody id="pct-body"></tbody>
-      </table>
+      <div class="metrics">
+        <div class="card">
+          <div class="card-label">Average cost</div>
+          <div class="card-value" id="m-avg">—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Median cost</div>
+          <div class="card-value" id="m-median">—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Avg booms</div>
+          <div class="card-value" id="m-booms">—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Avg attempts</div>
+          <div class="card-value" id="m-attempts">—</div>
+        </div>
+      </div>
 
-      <h2>Cost distribution</h2>
-      <canvas id="histogram" width="800" height="240"></canvas>
+      <article class="panel">
+        <header class="panel-head">
+          <span class="panel-title">Cost</span>
+          <span class="panel-unit">mesos</span>
+        </header>
+        <div class="panel-body">
+          <dl class="stat-list" id="cost-pct"></dl>
+          <div class="chart">
+            <canvas id="histogram" width="800" height="200"></canvas>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <header class="panel-head">
+          <span class="panel-title">Booms</span>
+          <span class="panel-unit">items destroyed</span>
+        </header>
+        <div class="panel-body">
+          <dl class="stat-list" id="booms-pct"></dl>
+          <div class="chart">
+            <canvas id="histogram-booms" width="800" height="200"></canvas>
+          </div>
+        </div>
+      </article>
     </section>
   </main>
 

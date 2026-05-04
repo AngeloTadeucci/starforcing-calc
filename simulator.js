@@ -136,6 +136,20 @@
     return buckets;
   }
 
+  function bucketizeIntegers(sortedAsc, maxBuckets) {
+    if (sortedAsc.length === 0) return [];
+    const min = sortedAsc[0];
+    const max = sortedAsc[sortedAsc.length - 1];
+    const span = max - min + 1;
+    if (span <= maxBuckets) {
+      const buckets = [];
+      for (let v = min; v <= max; v++) buckets.push({ from: v, to: v, count: 0 });
+      for (const v of sortedAsc) buckets[v - min].count += 1;
+      return buckets;
+    }
+    return bucketize(sortedAsc, maxBuckets);
+  }
+
   function runTrials(input) {
     const { currentStar, targetStar, itemLevel, trials } = input;
     const opts = {
@@ -146,17 +160,20 @@
     };
 
     const costs = new Array(trials);
+    const booms = new Array(trials);
     let sumCost = 0, sumBooms = 0, sumAttempts = 0;
 
     for (let i = 0; i < trials; i++) {
       const t = simulateOnce(currentStar, targetStar, itemLevel, opts);
       costs[i] = t.totalCost;
+      booms[i] = t.booms;
       sumCost += t.totalCost;
       sumBooms += t.booms;
       sumAttempts += t.attempts;
     }
 
     costs.sort((a, b) => a - b);
+    booms.sort((a, b) => a - b);
 
     return {
       trials,
@@ -167,9 +184,18 @@
       p95:         percentile(costs, 0.95),
       minCost:     costs[0],
       maxCost:     costs[costs.length - 1],
+
       avgBooms:    sumBooms / trials,
+      medianBooms: percentile(booms, 0.5),
+      p25Booms:    percentile(booms, 0.25),
+      p75Booms:    percentile(booms, 0.75),
+      p95Booms:    percentile(booms, 0.95),
+      minBooms:    booms[0],
+      maxBooms:    booms[booms.length - 1],
+
       avgAttempts: sumAttempts / trials,
       buckets:     bucketize(costs, 30),
+      boomBuckets: bucketizeIntegers(booms, 30),
     };
   }
 

@@ -1,6 +1,19 @@
 (function () {
   const $ = (id) => document.getElementById(id);
-  const fmt = (n) => Math.round(n).toLocaleString("en-US");
+
+  function fmtMesos(n) {
+    if (!Number.isFinite(n)) return "—";
+    const abs = Math.abs(n);
+    if (abs >= 1e12) return (n / 1e12).toFixed(2) + " T";
+    if (abs >= 1e9)  return (n / 1e9).toFixed(2)  + " B";
+    if (abs >= 1e6)  return (n / 1e6).toFixed(2)  + " M";
+    return Math.round(n).toLocaleString("en-US");
+  }
+
+  function fmtInt(n) {
+    if (!Number.isFinite(n)) return "—";
+    return Math.round(n).toLocaleString("en-US");
+  }
 
   function readInputs() {
     return {
@@ -29,27 +42,57 @@
     return null;
   }
 
-  function renderMetrics(stats) {
-    $("m-avg").textContent      = fmt(stats.avgCost);
-    $("m-median").textContent   = fmt(stats.medianCost);
-    $("m-booms").textContent    = stats.avgBooms.toFixed(2);
-    $("m-attempts").textContent = stats.avgAttempts.toFixed(1);
-
-    const rows = [
-      ["25th percentile", stats.p25],
-      ["Median (50th)",   stats.medianCost],
-      ["75th percentile", stats.p75],
-      ["95th percentile", stats.p95],
-      ["Min",             stats.minCost],
-      ["Max",             stats.maxCost],
-    ];
-    $("pct-body").innerHTML = rows
-      .map(([label, val]) => `<tr><td>${label}</td><td>${fmt(val)}</td></tr>`)
+  function renderStatList(elId, rows) {
+    const el = $(elId);
+    el.innerHTML = rows
+      .map(({ label, value, accent, divider }) => {
+        const cls = [
+          "stat-line",
+          accent ? "stat-line--accent" : "",
+          divider ? "stat-line--divider" : "",
+        ].filter(Boolean).join(" ");
+        return `<div class="${cls}"><dt>${label}</dt><dd>${value}</dd></div>`;
+      })
       .join("");
   }
 
-  function drawHistogram(buckets) {
-    const canvas = $("histogram");
+  function renderResults(stats) {
+    $("m-avg").textContent      = fmtMesos(stats.avgCost);
+    $("m-median").textContent   = fmtMesos(stats.medianCost);
+    $("m-booms").textContent    = stats.avgBooms.toFixed(2);
+    $("m-attempts").textContent = stats.avgAttempts.toFixed(1);
+
+    renderStatList("cost-pct", [
+      { label: "Min",       value: fmtMesos(stats.minCost) },
+      { label: "25th",      value: fmtMesos(stats.p25) },
+      { label: "Median",    value: fmtMesos(stats.medianCost), accent: true },
+      { label: "75th",      value: fmtMesos(stats.p75) },
+      { label: "95th",      value: fmtMesos(stats.p95) },
+      { label: "Max",       value: fmtMesos(stats.maxCost), divider: true },
+      { label: "Average",   value: fmtMesos(stats.avgCost) },
+    ]);
+
+    renderStatList("booms-pct", [
+      { label: "Min",       value: fmtInt(stats.minBooms) },
+      { label: "25th",      value: fmtInt(stats.p25Booms) },
+      { label: "Median",    value: fmtInt(stats.medianBooms), accent: true },
+      { label: "75th",      value: fmtInt(stats.p75Booms) },
+      { label: "95th",      value: fmtInt(stats.p95Booms) },
+      { label: "Max",       value: fmtInt(stats.maxBooms), divider: true },
+      { label: "Average",   value: stats.avgBooms.toFixed(2) },
+    ]);
+  }
+
+  function fmtAxis(n) {
+    if (n >= 1e12) return (n / 1e12).toFixed(1) + "T";
+    if (n >= 1e9)  return (n / 1e9).toFixed(1)  + "B";
+    if (n >= 1e6)  return (n / 1e6).toFixed(1)  + "M";
+    if (n >= 1e3)  return (n / 1e3).toFixed(0)  + "k";
+    return String(Math.round(n));
+  }
+
+  function drawHistogram(canvasId, buckets, formatX) {
+    const canvas = $(canvasId);
     const ctx = canvas.getContext("2d");
 
     const dpr = window.devicePixelRatio || 1;
@@ -69,7 +112,7 @@
     const maxCount = buckets.reduce((m, b) => Math.max(m, b.count), 0) || 1;
     const barW = w / buckets.length;
 
-    ctx.fillStyle = "#f5b454";
+    ctx.fillStyle = "#d4a259";
     for (let i = 0; i < buckets.length; i++) {
       const barH = (buckets[i].count / maxCount) * h;
       const x = padL + i * barW;
@@ -77,28 +120,21 @@
       ctx.fillRect(x + 1, y, Math.max(1, barW - 2), barH);
     }
 
-    ctx.strokeStyle = "#262c38";
+    ctx.strokeStyle = "#24272e";
     ctx.beginPath();
     ctx.moveTo(padL, padT + h + 0.5);
     ctx.lineTo(padL + w, padT + h + 0.5);
     ctx.stroke();
 
-    ctx.fillStyle = "#8b94a7";
-    ctx.font = "11px system-ui, sans-serif";
+    ctx.fillStyle = "#8a8d96";
+    ctx.font = '10.5px "IBM Plex Mono", ui-monospace, monospace';
     ctx.textBaseline = "top";
-    const fmtShort = (n) => {
-      if (n >= 1e9) return (n / 1e9).toFixed(1) + "B";
-      if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
-      if (n >= 1e3) return (n / 1e3).toFixed(0) + "k";
-      return String(Math.round(n));
-    };
     ctx.textAlign = "left";
-    ctx.fillText(fmtShort(buckets[0].from), padL, padT + h + 6);
+    ctx.fillText(formatX(buckets[0].from), padL, padT + h + 6);
     ctx.textAlign = "right";
-    ctx.fillText(fmtShort(buckets[buckets.length - 1].to), padL + w, padT + h + 6);
+    ctx.fillText(formatX(buckets[buckets.length - 1].to), padL + w, padT + h + 6);
 
     ctx.textAlign = "right";
-    ctx.textBaseline = "top";
     ctx.fillText(String(maxCount), padL - 6, padT);
   }
 
@@ -116,8 +152,9 @@
 
     const stats = SF.runTrials(input);
     $("results").classList.remove("hidden");
-    renderMetrics(stats);
-    drawHistogram(stats.buckets);
+    renderResults(stats);
+    drawHistogram("histogram", stats.buckets, fmtAxis);
+    drawHistogram("histogram-booms", stats.boomBuckets, (n) => String(Math.round(n)));
   }
 
   document.addEventListener("DOMContentLoaded", () => {
