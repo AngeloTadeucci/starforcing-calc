@@ -41,8 +41,7 @@ html, body {
   align-items: start;
 }
 
-/* Keep the masthead and footer at a comfortable reading width; results spans full width. */
-.masthead,
+/* Keep the footer at a comfortable reading width; results spans full width. */
 .colophon {
   max-width: 760px;
 }
@@ -50,6 +49,40 @@ html, body {
 /* ── Masthead ──────────────────────────────────────────── */
 .masthead {
   margin-bottom: 32px;
+}
+
+.masthead-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+/* Keep the title and subtitle at a comfortable reading width. */
+.masthead h1,
+.subtitle {
+  max-width: 760px;
+}
+
+.issue-link {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto; /* push to the far right edge of the masthead */
+  margin-top: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.issue-link:hover {
+  color: var(--accent-2);
+  border-color: var(--accent);
 }
 
 h1 {
