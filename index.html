@@ -128,6 +128,27 @@
 
       <article class="panel">
         <header class="panel-head">
+          <span class="panel-title">Success rate &amp; cost by star</span>
+          <span class="panel-unit" id="rate-cost-unit">% success · M mesos per attempt</span>
+        </header>
+        <div class="panel-body">
+          <table class="mode-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th data-mode-col="1">Mode 1</th>
+                <th data-mode-col="2">Mode 2</th>
+                <th data-mode-col="3">Mode 3</th>
+                <th data-mode-col="4">Mode 4</th>
+              </tr>
+            </thead>
+            <tbody id="rate-cost-table-body"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="panel">
+        <header class="panel-head">
           <span class="panel-title">Cost multiplier by mode</span>
           <span class="panel-unit">× that star's base cost</span>
         </header>
@@ -179,62 +200,62 @@
           <table class="mode-table">
             <thead>
               <tr>
-                <th>Star</th>
-                <th>Mode 1</th>
-                <th>Mode 2</th>
-                <th>Mode 3</th>
-                <th>Mode 4</th>
+                <th></th>
+                <th data-mode-col="1">Mode 1</th>
+                <th data-mode-col="2">Mode 2</th>
+                <th data-mode-col="3">Mode 3</th>
+                <th data-mode-col="4">Mode 4</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="boom-table-body">
               <tr>
                 <td>15 → 16</td>
-                <td class="num">2.10%</td>
-                <td class="num">1.40%</td>
-                <td class="num">0.70%</td>
-                <td class="num zero">0%</td>
+                <td class="num boom-cell" data-mode-col="1" data-base="2.10">2.10%</td>
+                <td class="num boom-cell" data-mode-col="2" data-base="1.40">1.40%</td>
+                <td class="num boom-cell" data-mode-col="3" data-base="0.70">0.70%</td>
+                <td class="num zero" data-mode-col="4">0%</td>
               </tr>
               <tr>
                 <td>16 → 17</td>
-                <td class="num">2.10%</td>
-                <td class="num">1.40%</td>
-                <td class="num">0.70%</td>
-                <td class="num zero">0%</td>
+                <td class="num boom-cell" data-mode-col="1" data-base="2.10">2.10%</td>
+                <td class="num boom-cell" data-mode-col="2" data-base="1.40">1.40%</td>
+                <td class="num boom-cell" data-mode-col="3" data-base="0.70">0.70%</td>
+                <td class="num zero" data-mode-col="4">0%</td>
               </tr>
               <tr>
                 <td>17 → 18</td>
-                <td class="num">6.80%</td>
-                <td class="num">4.25%</td>
-                <td class="num">1.70%</td>
-                <td class="num zero">0%</td>
+                <td class="num boom-cell" data-mode-col="1" data-base="6.80">6.80%</td>
+                <td class="num boom-cell" data-mode-col="2" data-base="4.25">4.25%</td>
+                <td class="num boom-cell" data-mode-col="3" data-base="1.70">1.70%</td>
+                <td class="num zero" data-mode-col="4">0%</td>
               </tr>
               <tr>
                 <td>18 → 19</td>
-                <td class="num">6.80%</td>
-                <td class="num">4.40%</td>
-                <td class="num">1.80%</td>
-                <td class="num zero">0%</td>
+                <td class="num boom-cell" data-mode-col="1" data-base="6.80">6.80%</td>
+                <td class="num boom-cell" data-mode-col="2" data-base="4.40">4.40%</td>
+                <td class="num boom-cell" data-mode-col="3" data-base="1.80">1.80%</td>
+                <td class="num zero" data-mode-col="4">0%</td>
               </tr>
               <tr>
                 <td>19 → 20</td>
-                <td class="num">8.50%</td>
-                <td class="num">6.16%</td>
-                <td class="num">3.60%</td>
-                <td class="num zero">0%</td>
+                <td class="num boom-cell" data-mode-col="1" data-base="8.50">8.50%</td>
+                <td class="num boom-cell" data-mode-col="2" data-base="6.16">6.16%</td>
+                <td class="num boom-cell" data-mode-col="3" data-base="3.60">3.60%</td>
+                <td class="num zero" data-mode-col="4">0%</td>
               </tr>
               <tr>
                 <td>20 → 21</td>
-                <td class="num">10.50%</td>
-                <td class="num">7.50%</td>
-                <td class="num">4.00%</td>
-                <td class="num zero">0%</td>
+                <td class="num boom-cell" data-mode-col="1" data-base="10.50">10.50%</td>
+                <td class="num boom-cell" data-mode-col="2" data-base="7.50">7.50%</td>
+                <td class="num boom-cell" data-mode-col="3" data-base="4.00">4.00%</td>
+                <td class="num zero" data-mode-col="4">0%</td>
               </tr>
               <tr>
                 <td>21 → 22</td>
-                <td class="num">12.75%</td>
-                <td class="num">8.80%</td>
-                <td class="num">4.50%</td>
-                <td class="num zero">0%</td>
+                <td class="num boom-cell" data-mode-col="1" data-base="12.75">12.75%</td>
+                <td class="num boom-cell" data-mode-col="2" data-base="8.80">8.80%</td>
+                <td class="num boom-cell" data-mode-col="3" data-base="4.50">4.50%</td>
+                <td class="num zero" data-mode-col="4">0%</td>
               </tr>
             </tbody>
           </table>
@@ -259,6 +280,7 @@
         <div class="card">
           <div class="card-label">Average cost</div>
           <div class="card-value" id="m-avg">—</div>
+          <div class="card-sub" id="m-avg-expected"></div>
         </div>
         <div class="card">
           <div class="card-label">Median cost</div>
@@ -267,9 +289,10 @@
         <div class="card">
           <div class="card-label">Avg booms</div>
           <div class="card-value" id="m-booms">—</div>
+          <div class="card-sub" id="m-booms-expected"></div>
         </div>
         <div class="card">
-          <div class="card-label">Avg attempts</div>
+          <div class="card-label">Median attempts</div>
           <div class="card-value" id="m-attempts">—</div>
         </div>
       </div>
@@ -320,6 +343,12 @@
           <dt>Cost formula</dt>
           <dd>
             <a href="https://strategywiki.org/wiki/MapleStory/Spell_Trace_and_Star_Force#Meso_Cost" target="_blank" rel="noopener noreferrer">StrategyWiki — Spell Trace and Star Force</a>
+          </dd>
+        </div>
+        <div class="source">
+          <dt>Thanks to</dt>
+          <dd>
+            <a href="https://ko-fi.com/angelotadeucci" target="_blank" rel="noopener noreferrer">Ângelo Tadeucci — Ko-fi</a>
           </dd>
         </div>
       </dl>
