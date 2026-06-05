@@ -44,10 +44,7 @@ body {
   align-items: start;
 }
 
-/* Keep the footer at a comfortable reading width; results spans full width. */
-.colophon {
-  max-width: 760px;
-}
+/* Keep the sources list at a comfortable reading width; the header rule spans full width. */
 
 /* ── Masthead ──────────────────────────────────────────── */
 .masthead {
@@ -240,6 +237,7 @@ label {
 .slider-ticks {
   display: flex;
   justify-content: space-between;
+  padding: 0 8px;
   font-family: var(--mono);
   font-size: 10.5px;
   letter-spacing: 0.06em;
@@ -435,7 +433,7 @@ button.is-running {
 }
 
 /* Keep the gap before the next row constant whether or not the note is shown —
- the note's presence in the DOM breaks the .row + .row spacing chain. */
+the note's presence in the DOM breaks the .row + .row spacing chain. */
 .event-note + .row {
   margin-top: 14px;
 }
@@ -762,6 +760,7 @@ th[data-mode-col].active-mode-col {
   padding: 0;
   display: grid;
   gap: 10px;
+  max-width: 760px;
 }
 
 .source {
