@@ -5,8 +5,8 @@
     if (!Number.isFinite(n)) return "—";
     const abs = Math.abs(n);
     if (abs >= 1e12) return (n / 1e12).toFixed(2) + " T";
-    if (abs >= 1e9)  return (n / 1e9).toFixed(2)  + " B";
-    if (abs >= 1e6)  return (n / 1e6).toFixed(2)  + " M";
+    if (abs >= 1e9) return (n / 1e9).toFixed(2) + " B";
+    if (abs >= 1e6) return (n / 1e6).toFixed(2) + " M";
     return Math.round(n).toLocaleString("en-US");
   }
 
@@ -17,28 +17,44 @@
 
   function readInputs() {
     return {
-      itemLevel:    parseInt($("itemLevel").value, 10),
-      currentStar:  parseInt($("currentStar").value, 10),
-      targetStar:   parseInt($("targetStar").value, 10),
-      trials:       parseInt($("trials").value, 10),
-      mvp:          $("mvp").value,
-      event:        $("event").value,
+      itemLevel: parseInt($("itemLevel").value, 10),
+      currentStar: parseInt($("currentStar").value, 10),
+      targetStar: parseInt($("targetStar").value, 10),
+      trials: parseInt($("trials").value, 10),
+      mvp: $("mvp").value,
+      event: $("event").value,
       starCatching: $("starCatching").checked,
-      safeguard:    $("safeguard").checked,
-      enhanceMode:  parseInt($("enhanceMode").value, 10),
+      safeguard: $("safeguard").checked,
+      enhanceMode: parseInt($("enhanceMode").value, 10),
     };
   }
 
   function validate(input) {
-    if (!Number.isFinite(input.itemLevel) || input.itemLevel < 1 || input.itemLevel > 300)
+    if (
+      !Number.isFinite(input.itemLevel) ||
+      input.itemLevel < 1 ||
+      input.itemLevel > 300
+    )
       return "Item level must be between 1 and 300.";
-    if (!Number.isFinite(input.currentStar) || input.currentStar < 0 || input.currentStar > 29)
+    if (
+      !Number.isFinite(input.currentStar) ||
+      input.currentStar < 0 ||
+      input.currentStar > 29
+    )
       return "Current ★ must be between 0 and 29.";
-    if (!Number.isFinite(input.targetStar) || input.targetStar < 1 || input.targetStar > 30)
+    if (
+      !Number.isFinite(input.targetStar) ||
+      input.targetStar < 1 ||
+      input.targetStar > 30
+    )
       return "Target ★ must be between 1 and 30.";
     if (input.targetStar <= input.currentStar)
       return "Target ★ must be greater than Current ★.";
-    if (!Number.isFinite(input.trials) || input.trials < 1 || input.trials > 100000)
+    if (
+      !Number.isFinite(input.trials) ||
+      input.trials < 1 ||
+      input.trials > 100000
+    )
       return "Trials must be between 1 and 100000.";
     return null;
   }
@@ -51,7 +67,9 @@
           "stat-line",
           accent ? "stat-line--accent" : "",
           divider ? "stat-line--divider" : "",
-        ].filter(Boolean).join(" ");
+        ]
+          .filter(Boolean)
+          .join(" ");
         return `<div class="${cls}"><dt>${label}</dt><dd>${value}</dd></div>`;
       })
       .join("");
@@ -90,9 +108,9 @@
 
   function fmtAxis(n) {
     if (n >= 1e12) return (n / 1e12).toFixed(1) + "T";
-    if (n >= 1e9)  return (n / 1e9).toFixed(1)  + "B";
-    if (n >= 1e6)  return (n / 1e6).toFixed(1)  + "M";
-    if (n >= 1e3)  return (n / 1e3).toFixed(0)  + "k";
+    if (n >= 1e9) return (n / 1e9).toFixed(1) + "B";
+    if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
+    if (n >= 1e3) return (n / 1e3).toFixed(0) + "k";
     return String(Math.round(n));
   }
 
@@ -119,7 +137,10 @@
 
     if (!buckets || buckets.length === 0) return;
 
-    const padL = 36, padR = 12, padT = 12, padB = 24;
+    const padL = 36,
+      padR = 12,
+      padT = 12,
+      padB = 24;
     const w = cssW - padL - padR;
     const h = cssH - padT - padB;
 
@@ -146,7 +167,11 @@
     ctx.textAlign = "left";
     ctx.fillText(formatX(buckets[0].from), padL, padT + h + 6);
     ctx.textAlign = "right";
-    ctx.fillText(formatX(buckets[buckets.length - 1].to), padL + w, padT + h + 6);
+    ctx.fillText(
+      formatX(buckets[buckets.length - 1].to),
+      padL + w,
+      padT + h + 6,
+    );
 
     ctx.textAlign = "right";
     ctx.fillText(String(maxCount), padL - 6, padT);
@@ -269,6 +294,12 @@
         return `<tr><td>${star} → ${star + 1}</td>${cols}</tr>`;
       })
       .join("");
+
+    // Re-apply column highlight after rebuilding the table body.
+    const v = parseInt($("enhanceMode").value, 10) || 1;
+    document.querySelectorAll("[data-mode-col]").forEach((el) => {
+      el.classList.toggle("active-mode-col", el.dataset.modeCol === String(v));
+    });
   }
 
   function syncEnhanceMode() {
@@ -284,9 +315,6 @@
     sg.closest(".check").classList.toggle("is-disabled", overrides);
 
     syncRateCostTable();
-    document.querySelectorAll("[data-mode-col]").forEach((el) => {
-      el.classList.toggle("active-mode-col", el.dataset.modeCol === String(v));
-    });
   }
 
   // Collects any modelling caveats that apply to the current inputs and renders
@@ -301,7 +329,8 @@
     const mode = parseInt($("enhanceMode").value, 10) || 1;
     const event = $("event").value;
     const note = $("eventNote");
-    const isBoomEvent = event === "boomReduction" || event === "shiningStarForce";
+    const isBoomEvent =
+      event === "boomReduction" || event === "shiningStarForce";
     const isCostEvent = event === "thirtyOff" || event === "shiningStarForce";
     const lines = [];
 
@@ -310,17 +339,19 @@
       if ((mode === 2 || mode === 3) && isBoomEvent) {
         lines.push(
           "<strong>Boom rate is an estimate.</strong> We don't know exactly how " +
-          "Mode " + mode + "'s boom rate will behave yet — for now boom is being " +
-          "applied as it normally would, so treat boom counts as approximate."
+            "Mode " +
+            mode +
+            "'s boom rate will behave yet — for now boom is being " +
+            "applied as it normally would, so treat boom counts as approximate.",
         );
       }
 
       if (isCostEvent) {
         lines.push(
           "<strong>Cost reduction is an estimate.</strong> We don't know for sure " +
-          "how event cost reductions will be calculated — the discount is currently " +
-          "applied as a straight percentage off each star's cost, so treat totals " +
-          "as approximate."
+            "how event cost reductions will be calculated — the discount is currently " +
+            "applied as a straight percentage off each star's cost, so treat totals " +
+            "as approximate.",
         );
       }
     }
