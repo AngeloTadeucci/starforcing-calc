@@ -371,9 +371,12 @@
 
   function syncBoomTable() {
     const ev = $("event").value;
-    const reduced = ev === "boomReduction" || ev === "shiningStarForce";
+    const boomEventActive = ev === "boomReduction" || ev === "shiningStarForce";
     document.querySelectorAll(".boom-cell").forEach((cell) => {
       const base = parseFloat(cell.dataset.base);
+      // Boom reduction events only affect Mode 1; Modes 2–4 use fixed
+      // ENHANCE_MODE rates that the simulator never modifies for events.
+      const reduced = boomEventActive && cell.dataset.modeCol === "1";
       if (reduced) {
         const reducedVal = (base * 0.7).toFixed(2);
         cell.innerHTML = `<span style="text-decoration:line-through;color:var(--muted-2)">${base.toFixed(2)}%</span> ${reducedVal}%`;
