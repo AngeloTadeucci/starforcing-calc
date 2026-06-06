@@ -9,6 +9,11 @@
   const PLAN_STARS = [15, 16, 17, 18, 19, 20, 21];
   const PLAN_STORAGE_KEY = "sf-star-plan";
   const TAB_STORAGE_KEY = "sf-active-tab";
+  const OPT_STORAGE_KEY = "sf-optimize";
+
+  // The plan produced by the last Optimize run, held so "Apply to Per-star
+  // matrix" can write it into the editable matrix.
+  let lastOptimizedPlan = null;
   // Default plan: safeguard 15–17, Mode 1 on 18–19, Mode 4 on 20–21.
   const DEFAULT_PLAN = {
     15: { mode: 1, safeguard: true },
@@ -289,6 +294,9 @@
 
   async function onSubmit(e) {
     e.preventDefault();
+    // No simulation runs from the Optimize tab — its Run button is hidden, but
+    // pressing Enter in a field would still submit the form, so ignore it here.
+    if (activeTab === "optimize") return;
     const errEl = $("error");
     errEl.textContent = "";
 
@@ -403,27 +411,37 @@
   // 4 has no boom). Grey it out and say why when it can't do anything, otherwise
   // ticking it looks like it does nothing.
   function syncEnhanceEventsToggle() {
-    const mode = parseInt($("enhanceMode").value, 10) || 1;
     const ev = $("event").value;
     const costEvent = ev === "thirtyOff" || ev === "shiningStarForce";
     const boomEvent = ev === "boomReduction" || ev === "shiningStarForce";
 
-    const affectsCost = costEvent && mode >= 2;
-    const affectsBoom = boomEvent && (mode === 2 || mode === 3);
-    const usable = affectsCost || affectsBoom;
+    let usable, hintText;
+    if (activeTab === "quick") {
+      // Quick tab has a single global mode, so the toggle only does anything in
+      // modes 2–4 (cost) / 2–3 (boom) with a matching event.
+      const mode = parseInt($("enhanceMode").value, 10) || 1;
+      const affectsCost = costEvent && mode >= 2;
+      const affectsBoom = boomEvent && (mode === 2 || mode === 3);
+      usable = affectsCost || affectsBoom;
+      if (usable) hintText = "(experimental)";
+      else if (mode === 1) hintText = "(modes 2–4 only)";
+      else if (!costEvent && !boomEvent)
+        hintText = "(needs a cost or boom event)";
+      else hintText = "(no effect with this event)";
+    } else {
+      // Per-star / Optimize: there's no global mode (the slider is hidden) and a
+      // plan can use any mode per star, so the toggle is usable whenever a cost-
+      // or boom-reducing event is active.
+      usable = costEvent || boomEvent;
+      hintText = usable ? "(experimental)" : "(needs a cost or boom event)";
+    }
 
     const cb = $("enhanceModeEvents");
     cb.disabled = !usable;
     cb.closest(".check").classList.toggle("is-disabled", !usable);
 
     const hint = $("enhanceModeEventsHint");
-    if (hint) {
-      if (usable) hint.textContent = "(experimental)";
-      else if (mode === 1) hint.textContent = "(modes 2–4 only)";
-      else if (!costEvent && !boomEvent)
-        hint.textContent = "(needs a cost or boom event)";
-      else hint.textContent = "(no effect with this event)";
-    }
+    if (hint) hint.textContent = hintText;
   }
 
   // Explains, in plain language, how the selected event interacts with the new
@@ -633,22 +651,249 @@
   }
 
   function setTab(tab) {
-    activeTab = tab === "perstar" ? "perstar" : "quick";
+    activeTab =
+      tab === "perstar" || tab === "optimize" ? tab : "quick";
+    const quick = activeTab === "quick";
     const perStar = activeTab === "perstar";
-    $("tab-quick").classList.toggle("is-active", !perStar);
+    const optimize = activeTab === "optimize";
+    $("tab-quick").classList.toggle("is-active", quick);
     $("tab-perstar").classList.toggle("is-active", perStar);
-    $("tab-quick").setAttribute("aria-selected", String(!perStar));
+    $("tab-optimize").classList.toggle("is-active", optimize);
+    $("tab-quick").setAttribute("aria-selected", String(quick));
     $("tab-perstar").setAttribute("aria-selected", String(perStar));
-    // The global mode slider + safeguard checkbox belong to the Quick tab only;
-    // the reference tables are replaced by the strategy matrix in Per-star.
-    $("enhanceModeRow").classList.toggle("hidden", perStar);
-    $("safeguardField").classList.toggle("hidden", perStar);
-    $("referencePanels").classList.toggle("hidden", perStar);
+    $("tab-optimize").setAttribute("aria-selected", String(optimize));
+    // The global mode slider + safeguard checkbox and the reference tables
+    // belong to the Quick tab only; Per-star and Optimize replace the right
+    // column with their own panels.
+    $("enhanceModeRow").classList.toggle("hidden", !quick);
+    $("safeguardField").classList.toggle("hidden", !quick);
+    $("referencePanels").classList.toggle("hidden", !quick);
     $("perStarPanel").classList.toggle("hidden", !perStar);
+    $("optimizePanel").classList.toggle("hidden", !optimize);
+    // The form's "Run simulation" button has no clear mode to run on the
+    // Optimize tab (no global slider, no plan yet), so hide it there — the
+    // Optimize button + "Apply to Per-star matrix" is the path to a run.
+    $("formActions").classList.toggle("hidden", optimize);
+    // The "apply events to enhance modes" toggle is gated differently per tab
+    // (Quick keys off the global slider; Per-star/Optimize off the event alone),
+    // so re-evaluate it whenever the active tab changes.
+    syncEnhanceEventsToggle();
     if (perStar) syncPlanTable();
     try {
       localStorage.setItem(TAB_STORAGE_KEY, activeTab);
     } catch (e) {}
+  }
+
+  // ── Optimize tab ────────────────────────────────────────────────────────
+  // Modifiers the optimizer scores against — the same form inputs the matrix
+  // reads, minus the global mode/safeguard (the plan supplies those per star).
+  function readOptBaseOpts() {
+    return {
+      mvp: $("mvp").value,
+      event: $("event").value,
+      starCatching: $("starCatching").checked,
+      enhanceModeEvents: $("enhanceModeEvents").checked,
+      enhanceMode: 0,
+      safeguard: false,
+    };
+  }
+
+  function loadOptSettings() {
+    let s = null;
+    try {
+      const raw = localStorage.getItem(OPT_STORAGE_KEY);
+      if (raw) s = JSON.parse(raw);
+    } catch (e) {}
+    if (!s) return;
+    if (Number.isFinite(s.budget)) $("optBudget").value = s.budget;
+    if (Number.isFinite(s.spares)) $("optSpares").value = s.spares;
+  }
+
+  function saveOptSettings() {
+    try {
+      localStorage.setItem(
+        OPT_STORAGE_KEY,
+        JSON.stringify({
+          budget: parseFloat($("optBudget").value),
+          spares: parseInt($("optSpares").value, 10),
+        }),
+      );
+    } catch (e) {}
+  }
+
+  // Any change to the inputs the recommendation depends on makes the shown
+  // result stale — hide it so a stale plan can't be applied by mistake.
+  function clearOptResult() {
+    lastOptimizedPlan = null;
+    const el = $("optResult");
+    el.classList.add("hidden");
+    el.innerHTML = "";
+  }
+
+  async function runOptimize() {
+    const errEl = $("optError");
+    errEl.textContent = "";
+    clearOptResult();
+
+    const itemLevel = readItemLevel();
+    const currentStar = parseInt($("currentStar").value, 10);
+    const targetStar = parseInt($("targetStar").value, 10);
+    if (!Number.isFinite(itemLevel) || itemLevel < 1 || itemLevel > 300) {
+      errEl.textContent = "Item level must be between 1 and 300.";
+      return;
+    }
+    if (
+      !Number.isFinite(currentStar) ||
+      !Number.isFinite(targetStar) ||
+      currentStar < 0 ||
+      targetStar > 30 ||
+      targetStar <= currentStar
+    ) {
+      errEl.textContent = "Target ★ must be greater than Current ★.";
+      return;
+    }
+    if (SF.optimizer.optimizableStars(targetStar).length === 0) {
+      errEl.textContent =
+        "No Enhancement-Mode stars (15–21) in this range to optimize.";
+      return;
+    }
+
+    const opts = readOptBaseOpts();
+    const budgetB = parseFloat($("optBudget").value);
+    const spares = parseInt($("optSpares").value, 10) || 0;
+    if (!Number.isFinite(budgetB) || budgetB < 0) {
+      errEl.textContent = "Enter a meso budget (in billions).";
+      return;
+    }
+    const budgetMesos = budgetB * 1e9;
+    const params = { currentStar, targetStar, itemLevel, opts };
+
+    // Maximize P(total cost ≤ budget AND booms ≤ spares). No closed form for the
+    // joint distribution, so simulate — but only the plans on the analytic
+    // mean-(cost, booms) Pareto frontier, where the optimum has to live.
+    const btn = $("optimizeBtn");
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.classList.add("is-running");
+    try {
+      const fr = SF.optimizer.optimizeFrontier(params, 24);
+      // Heavier ranges (toward 30★) get fewer trials so the sweep stays snappy.
+      const trials = targetStar <= 24 ? 5000 : 2500;
+      const scored = [];
+      for (let i = 0; i < fr.candidates.length; i++) {
+        const cand = fr.candidates[i];
+        const input = Object.assign(
+          { currentStar, targetStar, itemLevel, starPlan: cand.plan },
+          opts,
+        );
+        const prob = SF.optimizer.successProb(input, budgetMesos, spares, trials);
+        scored.push(Object.assign({ prob }, cand));
+        btn.textContent = `Optimizing ${i + 1} / ${fr.candidates.length}`;
+        // Yield so the button text repaints between candidates.
+        await new Promise((r) => setTimeout(r, 0));
+      }
+      // Pick the cheapest plan whose odds are within a tolerance of the best
+      // odds, rather than the strict maximum. Chasing the last fraction of a
+      // percent — often just Monte-Carlo noise — makes the optimizer overspend
+      // (e.g. buying Mode 4 to go 99.9% → 100% when the budget is huge). When
+      // several plans are effectively tied on odds, the player wants the cheapest.
+      const ODDS_TOL = 0.01; // 1 percentage point
+      const maxProb = scored.reduce((m, r) => Math.max(m, r.prob), 0);
+      let best = null;
+      for (const r of scored) {
+        if (r.prob >= maxProb - ODDS_TOL && (!best || r.expCost < best.expCost)) {
+          best = r;
+        }
+      }
+      lastOptimizedPlan = best.plan;
+      renderOptResult({
+        result: best,
+        budgetMesos,
+        spares,
+        prob: best.prob,
+        trials,
+        frontierSize: fr.frontierSize,
+        currentStar,
+        targetStar,
+        itemLevel,
+      });
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove("is-running");
+      btn.textContent = label;
+    }
+  }
+
+  function renderOptResult(ctx) {
+    const { result, budgetMesos, spares, currentStar, targetStar } = ctx;
+    const plan = result.plan;
+    const baseOpts = readOptBaseOpts();
+    const planOpts = Object.assign({ starPlan: plan }, baseOpts);
+    const stars = SF.optimizer.optimizableStars(targetStar);
+
+    const rows = stars
+      .map((star) => {
+        const ch = plan[star];
+        const [, , boom] = SF.applyRateModifiers(star, planOpts);
+        const cost = Math.round(
+          SF.baseCost(star, ctx.itemLevel) * SF.costMultiplier(star, planOpts),
+        );
+        const modeLabel =
+          ch.mode === 1 && ch.safeguard ? "Mode 1 + SG" : "Mode " + ch.mode;
+        const boomPct = boom * 100;
+        // Rows below the current star never start in the run; they only matter
+        // on a boom re-climb, so grey them like the matrix does.
+        const off = star < currentStar;
+        return `<tr${off ? ' class="plan-row--off"' : ""}>
+          <td>${star} → ${star + 1}</td>
+          <td>${modeLabel}</td>
+          <td class="num"><span class="plan-boom${boomPct === 0 ? " zero" : ""}">${boomPct.toFixed(2)}%</span></td>
+          <td class="num">${fmtMesos(cost)}</td>
+        </tr>`;
+      })
+      .join("");
+
+    const summaryItems = [
+      { k: "Finish odds", v: (ctx.prob * 100).toFixed(1) + "%" },
+      { k: "Expected cost", v: fmtMesos(result.expCost) },
+      { k: "Expected booms", v: result.expBooms.toFixed(2) },
+    ];
+    const summary =
+      '<div class="opt-summary">' +
+      summaryItems
+        .map(
+          (s) =>
+            `<div><span class="opt-k">${s.k}</span><span class="opt-v">${s.v}</span></div>`,
+        )
+        .join("") +
+      "</div>";
+
+    const spareLabel = spares === 1 ? "spare" : "spares";
+    let note = `<p class="opt-note">≈${(ctx.prob * 100).toFixed(1)}% chance to reach ${targetStar}★ for ≤ ${fmtMesos(budgetMesos)} and ≤ ${spares} ${spareLabel}. Picked from ${ctx.frontierSize} cost/boom-efficient plans, ${ctx.trials.toLocaleString("en-US")} trials each.</p>`;
+    // When even the best plan rarely finishes, the constraints — not the plan —
+    // are the problem; say so rather than presenting a long-shot as "optimal".
+    if (ctx.prob < 0.5) {
+      note += `<p class="opt-note opt-warn">Even the best plan finishes under these limits only ${(ctx.prob * 100).toFixed(1)}% of the time — raise the budget or add spares for better odds.</p>`;
+    }
+
+    const table = `<table class="mode-table plan-table opt-table">
+      <thead><tr><th>★</th><th>Mode</th><th>Boom</th><th>Cost</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+    const apply = `<div class="opt-apply"><button type="button" id="optApply">Apply to Per-star matrix</button></div>`;
+
+    const el = $("optResult");
+    el.innerHTML = summary + note + table + apply;
+    el.classList.remove("hidden");
+    $("optApply").addEventListener("click", applyOptimizedPlan);
+  }
+
+  function applyOptimizedPlan() {
+    if (!lastOptimizedPlan) return;
+    savePlan(lastOptimizedPlan);
+    buildPlanTable();
+    setTab("perstar");
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -682,8 +927,10 @@
     // Tabs + per-star matrix.
     $("tab-quick").addEventListener("click", () => setTab("quick"));
     $("tab-perstar").addEventListener("click", () => setTab("perstar"));
+    $("tab-optimize").addEventListener("click", () => setTab("optimize"));
     // Inputs the matrix's boom%/cost and active-range shading depend on. (The
     // mode slider and safeguard checkbox are Quick-only and don't feed it.)
+    // They also feed the optimizer, so clear any stale recommendation too.
     [
       "event",
       "mvp",
@@ -696,8 +943,21 @@
     ].forEach((id) => {
       const el = $(id);
       const evt = el.tagName === "INPUT" && el.type === "number" ? "input" : "change";
-      el.addEventListener(evt, syncPlanTable);
+      el.addEventListener(evt, () => {
+        syncPlanTable();
+        clearOptResult();
+      });
     });
+
+    // Optimize tab controls.
+    ["optBudget", "optSpares"].forEach((id) =>
+      $(id).addEventListener("input", () => {
+        saveOptSettings();
+        clearOptResult();
+      }),
+    );
+    $("optimizeBtn").addEventListener("click", runOptimize);
+    loadOptSettings();
 
     syncItemLevelCustom();
     syncEnhanceMode();

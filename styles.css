@@ -125,13 +125,33 @@ fieldset:last-of-type {
   padding-bottom: 20px;
 }
 
+/* Render each legend as an enclosed header bar matching the right-column panel
+   headers (e.g. "OPTIMIZE PLAN"): amber title, #13151a background, and a divider
+   beneath. Negative margins pull the bar out to the fieldset edges (cancelled by
+   equal padding) so it spans the whole panel width like a panel-head does. */
 .legend {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--muted-2);
-  margin: 0 0 12px;
+  color: var(--accent);
+  margin: 0 -22px 16px;
+  padding: 12px 22px;
+  background: #13151a;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/* The first fieldset's top padding would leave a band of panel colour above the
+   first header bar; pull the bar up so it sits flush with the form's top edge. */
+fieldset:first-of-type .legend {
+  margin-top: -22px;
+  border-radius: 4px 4px 0 0;
+}
+
+/* Later section headers (Star range, Modifiers) get a divider on top too, so
+   each section reads as its own enclosed block. */
+fieldset:not(:first-of-type) .legend {
+  border-top: 1px solid var(--border-soft);
 }
 
 .row {
@@ -838,6 +858,16 @@ th[data-mode-col].active-mode-col {
   fieldset {
     padding: 16px 16px;
   }
+  /* Keep the legend bar flush with the narrower mobile fieldset padding. */
+  .legend {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  fieldset:first-of-type .legend {
+    margin-top: -16px;
+  }
   .actions {
     padding: 14px 16px;
     flex-wrap: wrap;
@@ -907,10 +937,18 @@ th[data-mode-col].active-mode-col {
 }
 
 .tab:hover {
+  /* Override the global button:hover amber fill — tabs are an underline style,
+     not filled buttons; hover only shifts the text colour. */
+  background: none;
   color: var(--text);
 }
 
-.tab.is-active {
+.tab:active {
+  transform: none;
+}
+
+.tab.is-active,
+.tab.is-active:hover {
   color: var(--accent);
   border-bottom-color: var(--accent);
 }
@@ -981,4 +1019,131 @@ th[data-mode-col].active-mode-col {
   font-size: 12px;
   line-height: 1.5;
   color: var(--muted);
+}
+
+/* ── Optimize tab ──────────────────────────────────────── */
+.opt-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 16px 0;
+}
+
+/* Override the global label flex-grow so stacked fields take natural height
+   instead of stretching to fill the column. */
+.opt-controls label {
+  flex: 0 0 auto;
+}
+
+.opt-intro {
+  margin: 14px 0 0;
+  padding: 0 16px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.opt-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+}
+
+.opt-result {
+  border-top: 1px solid var(--border-soft);
+}
+
+.opt-result.hidden {
+  display: none;
+}
+
+/* Headline metrics for the recommended plan. */
+.opt-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 16px 16px 4px;
+}
+
+.opt-summary > div {
+  flex: 1 1 120px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 10px 12px;
+}
+
+.opt-k {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.opt-v {
+  display: block;
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--accent-2);
+  margin-top: 5px;
+  font-feature-settings: "tnum" 1;
+}
+
+.opt-note {
+  margin: 0;
+  padding: 10px 16px 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.opt-note.opt-warn {
+  color: var(--error);
+}
+
+/* The recommended-plan preview reuses the matrix look. */
+.opt-table {
+  margin-top: 12px;
+}
+
+.opt-table th,
+.opt-table td {
+  text-align: center;
+}
+
+.opt-table th:first-child,
+.opt-table td:first-child {
+  text-align: left;
+}
+
+.opt-table tbody td:first-child {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.opt-apply {
+  padding: 14px 16px 16px;
+}
+
+@media (max-width: 540px) {
+  .opt-controls {
+    padding: 14px 12px 0;
+  }
+  .opt-intro {
+    padding: 0 12px;
+  }
+  .opt-actions,
+  .opt-apply {
+    padding: 14px 12px;
+  }
+  .opt-summary {
+    padding: 14px 12px 4px;
+  }
+  .opt-note {
+    padding: 10px 12px 0;
+  }
 }

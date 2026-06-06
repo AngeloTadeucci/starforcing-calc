@@ -50,7 +50,7 @@
                     role="tab"
                     aria-selected="true"
                 >
-                    Quick
+                    Simple
                 </button>
                 <button
                     type="button"
@@ -60,6 +60,15 @@
                     aria-selected="false"
                 >
                     Per-star
+                </button>
+                <button
+                    type="button"
+                    id="tab-optimize"
+                    class="tab"
+                    role="tab"
+                    aria-selected="false"
+                >
+                    Optimizer
                 </button>
             </div>
 
@@ -230,7 +239,7 @@
                         </div>
                     </fieldset>
 
-                    <div class="actions">
+                    <div class="actions" id="formActions">
                         <button type="submit" id="calc">Run simulation</button>
                         <span
                             id="error"
@@ -512,6 +521,77 @@
                         </div>
                     </article>
                 </section>
+
+                <section
+                    class="reference optimize-panel hidden"
+                    id="optimizePanel"
+                >
+                    <article class="panel">
+                        <header class="panel-head">
+                            <span class="panel-title">Optimize plan</span>
+                            <span class="panel-unit"
+                                >auto-fill the matrix</span
+                            >
+                        </header>
+                        <div class="panel-body opt-body">
+                            <div class="opt-controls">
+                                <label id="optBudgetField">
+                                    <span class="field-label"
+                                        >Meso budget
+                                        <em class="hint">(billions)</em></span
+                                    >
+                                    <input
+                                        type="number"
+                                        id="optBudget"
+                                        min="0"
+                                        step="1"
+                                        value="50"
+                                    />
+                                </label>
+                                <label id="optSparesField">
+                                    <span class="field-label"
+                                        >Spare items
+                                        <em class="hint"
+                                            >(booms you can take)</em
+                                        ></span
+                                    >
+                                    <input
+                                        type="number"
+                                        id="optSpares"
+                                        min="0"
+                                        step="1"
+                                        value="0"
+                                    />
+                                </label>
+                            </div>
+                            <p class="opt-intro">
+                                Finds the mode &amp; safeguard plan with the best
+                                chance of reaching your target for your meso
+                                budget and spare count — searching every
+                                combination for stars 15–21 in the current →
+                                target range, then filling the Per-star matrix.
+                                Uses the modifiers (item level, event, MVP, star
+                                catching) from the form on the left.
+                            </p>
+                            <div class="opt-actions">
+                                <button type="button" id="optimizeBtn">
+                                    Optimize
+                                </button>
+                                <span
+                                    id="optError"
+                                    class="error"
+                                    role="alert"
+                                    aria-live="polite"
+                                ></span>
+                            </div>
+                            <div
+                                id="optResult"
+                                class="opt-result hidden"
+                                aria-live="polite"
+                            ></div>
+                        </div>
+                    </article>
+                </section>
             </div>
 
             <section id="results" class="results hidden" aria-live="polite">
@@ -628,6 +708,7 @@
 
         <script src="rates.js"></script>
         <script src="simulator.js"></script>
+        <script src="optimizer.js"></script>
         <script src="app.js"></script>
     </body>
 </html>
