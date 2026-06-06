@@ -263,8 +263,6 @@
 
   function syncRateCostTable() {
     const itemLevel = parseInt($("itemLevel").value, 10) || 200;
-    $("rate-cost-unit").textContent =
-      "% success · M mesos per attempt · lv. " + itemLevel;
 
     const stars = [15, 16, 17, 18, 19, 20, 21];
     $("rate-cost-table-body").innerHTML = stars
