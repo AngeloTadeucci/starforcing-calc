@@ -506,14 +506,6 @@ the note's presence in the DOM breaks the .row + .row spacing chain. */
   letter-spacing: -0.01em;
 }
 
-.card-sub {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--muted-2);
-  margin-top: 5px;
-  font-feature-settings: "tnum" 1;
-}
-
 /* Stat panels */
 .panel {
   background: var(--panel);

@@ -76,15 +76,11 @@
       .join("");
   }
 
-  function renderResults(stats, expected) {
+  function renderResults(stats) {
     $("m-avg").textContent = fmtMesos(stats.avgCost);
     $("m-median").textContent = fmtMesos(stats.medianCost);
     $("m-booms").textContent = stats.avgBooms.toFixed(2);
     $("m-attempts").textContent = stats.medianAttempts.toFixed(1);
-    $("m-avg-expected").textContent =
-      fmtMesos(expected.expectedCost) + " expected";
-    $("m-booms-expected").textContent =
-      expected.expectedBooms.toFixed(2) + " expected";
 
     renderStatList("cost-pct", [
       { label: "Min", value: fmtMesos(stats.minCost) },
@@ -240,9 +236,8 @@
           btn.textContent = `Running ${done.toLocaleString("en-US")} / ${total.toLocaleString("en-US")}`;
         },
       });
-      const expected = SF.analyticalExpected(input);
       $("results").classList.remove("hidden");
-      renderResults(stats, expected);
+      renderResults(stats);
       drawHistogram("histogram", stats.buckets, fmtAxis, {
         total: stats.trials,
       });

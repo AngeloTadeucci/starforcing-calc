@@ -297,69 +297,6 @@
     });
   }
 
-  // Computes exact expected cost, booms, and attempts analytically (no sampling).
-  // Uses the recurrence: for each star N→N+1,
-  //   E_cost[N]     = (c + d * Σ E_cost[M..N-1])   / s
-  //   E_booms[N]    = d * (1 + Σ E_booms[M..N-1])  / s
-  //   E_attempts[N] = (1 + d * Σ E_attempts[M..N-1]) / s
-  // where M = boomDropStar(N), s = success rate, d = destroy rate, c = cost per attempt.
-  function analyticalExpected(input) {
-    const { currentStar, targetStar, itemLevel } = input;
-    const opts = {
-      starCatching: !!input.starCatching,
-      safeguard: !!input.safeguard,
-      mvp: input.mvp || "none",
-      event: input.event || "none",
-      enhanceMode: input.enhanceMode || 0,
-      enhanceModeEvents: !!input.enhanceModeEvents,
-    };
-
-    // We may need stars below currentStar if a boom can drop us there.
-    let minStar = currentStar;
-    for (let n = currentStar; n < targetStar; n++) {
-      const drop = boomDropStar(n);
-      if (drop < minStar) minStar = drop;
-    }
-
-    const eCost = {}; // expected cost for step n → n+1
-    const eBooms = {}; // expected booms for step n → n+1
-    const eAttempts = {}; // expected attempts for step n → n+1
-
-    // Cumulative sums from star a up to (but not including) b.
-    function cum(map, a, b) {
-      let t = 0;
-      for (let i = a; i < b; i++) t += map[i] || 0;
-      return t;
-    }
-
-    for (let n = minStar; n < targetStar; n++) {
-      const guaranteed =
-        opts.event === "fivetenfifteen" && (n === 5 || n === 10 || n === 15);
-
-      if (guaranteed) {
-        const c = Math.round(baseCost(n, itemLevel) * costMultiplier(n, opts));
-        eCost[n] = c;
-        eBooms[n] = 0;
-        eAttempts[n] = 1;
-        continue;
-      }
-
-      const [s, , d] = applyRateModifiers(n, opts);
-      const c = Math.round(baseCost(n, itemLevel) * costMultiplier(n, opts));
-      const M = boomDropStar(n);
-
-      eCost[n] = (c + d * cum(eCost, M, n)) / s;
-      eBooms[n] = (d * (1 + cum(eBooms, M, n))) / s;
-      eAttempts[n] = (1 + d * cum(eAttempts, M, n)) / s;
-    }
-
-    return {
-      expectedCost: cum(eCost, currentStar, targetStar),
-      expectedBooms: cum(eBooms, currentStar, targetStar),
-      expectedAttempts: cum(eAttempts, currentStar, targetStar),
-    };
-  }
-
   global.SF = global.SF || {};
   global.SF.baseCost = baseCost;
   global.SF.boomDropStar = boomDropStar;
@@ -368,5 +305,4 @@
   global.SF.costMultiplier = costMultiplier;
   global.SF.simulateOnce = simulateOnce;
   global.SF.runTrials = runTrials;
-  global.SF.analyticalExpected = analyticalExpected;
 })(window);
