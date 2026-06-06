@@ -220,6 +220,51 @@
     };
   }
 
+  // Run the simulation off the main thread via a Web Worker so the UI stays
+  // fully responsive while it runs. Falls back to the in-page (time-sliced) path
+  // if a Worker can't be created or fails to load — e.g. some browsers block
+  // worker scripts under the file:// protocol. A fresh worker per run keeps the
+  // routing simple and lets us terminate it cleanly when finished.
+  function runSimulation(input, onProgress) {
+    return new Promise((resolve) => {
+      let worker;
+      try {
+        worker = new Worker("worker.js");
+      } catch (e) {
+        resolve(SF.runTrials(input, { onProgress }));
+        return;
+      }
+
+      let settled = false;
+      const fallback = () => {
+        if (settled) return;
+        settled = true;
+        try {
+          worker.terminate();
+        } catch (e) {}
+        resolve(SF.runTrials(input, { onProgress }));
+      };
+
+      worker.onmessage = (e) => {
+        const msg = e.data;
+        if (msg.type === "progress") {
+          onProgress(msg.done, msg.total);
+        } else if (msg.type === "done") {
+          settled = true;
+          worker.terminate();
+          resolve(msg.stats);
+        }
+      };
+      worker.onerror = (err) => {
+        // Worker failed to load or threw; recover by computing in-page.
+        if (err && err.preventDefault) err.preventDefault();
+        fallback();
+      };
+
+      worker.postMessage(input);
+    });
+  }
+
   async function onSubmit(e) {
     e.preventDefault();
     const errEl = $("error");
@@ -239,10 +284,8 @@
     btn.textContent = `Running 0 / ${input.trials.toLocaleString("en-US")}`;
 
     try {
-      const stats = await SF.runTrials(input, {
-        onProgress: (done, total) => {
-          btn.textContent = `Running ${done.toLocaleString("en-US")} / ${total.toLocaleString("en-US")}`;
-        },
+      const stats = await runSimulation(input, (done, total) => {
+        btn.textContent = `Running ${done.toLocaleString("en-US")} / ${total.toLocaleString("en-US")}`;
       });
       $("results").classList.remove("hidden");
       renderResults(stats);
