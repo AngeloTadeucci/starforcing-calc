@@ -290,11 +290,12 @@
               SF.baseCost(star, itemLevel) * SF.costMultiplier(star, opts),
             );
             const pct = (s * 100).toFixed(1) + "%";
-            const costM = (cost / 1e6).toFixed(2) + " M";
+            // fmtMesos rolls over to "B" above 1000 M (and "T" above 1000 B).
+            const costStr = fmtMesos(cost);
             // Gradient: amber #d4a259 (30%+) → red #c97a7a (8% and below)
             const t = Math.max(0, Math.min(1, (s - 0.08) / (0.3 - 0.08)));
             const pctColor = `rgb(${Math.round(201 + 11 * t)},${Math.round(122 + 40 * t)},${Math.round(122 - 33 * t)})`;
-            return `<td class="num" data-mode-col="${m}"><span style="color:${pctColor}">${pct}</span><br><span class="table-sub">${costM}</span></td>`;
+            return `<td class="num" data-mode-col="${m}"><span style="color:${pctColor}">${pct}</span><br><span class="table-sub">${costStr}</span></td>`;
           })
           .join("");
         return `<tr><td>${star} → ${star + 1}</td>${cols}</tr>`;
