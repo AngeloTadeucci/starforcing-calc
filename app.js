@@ -15,9 +15,17 @@
     return Math.round(n).toLocaleString("en-US");
   }
 
+  // Item level comes from the dropdown, except when "Custom…" is selected, in
+  // which case the free-input field next to it is authoritative.
+  function readItemLevel() {
+    const sel = $("itemLevel");
+    if (sel.value === "custom") return parseInt($("itemLevelCustom").value, 10);
+    return parseInt(sel.value, 10);
+  }
+
   function readInputs() {
     return {
-      itemLevel: parseInt($("itemLevel").value, 10),
+      itemLevel: readItemLevel(),
       currentStar: parseInt($("currentStar").value, 10),
       targetStar: parseInt($("targetStar").value, 10),
       trials: parseInt($("trials").value, 10),
@@ -262,7 +270,7 @@
   };
 
   function syncRateCostTable() {
-    const itemLevel = parseInt($("itemLevel").value, 10) || 200;
+    const itemLevel = readItemLevel() || 200;
 
     const stars = [15, 16, 17, 18, 19, 20, 21];
     $("rate-cost-table-body").innerHTML = stars
@@ -298,6 +306,14 @@
     document.querySelectorAll("[data-mode-col]").forEach((el) => {
       el.classList.toggle("active-mode-col", el.dataset.modeCol === String(v));
     });
+  }
+
+  // Reveal the free-input field only when "Custom…" is picked.
+  function syncItemLevelCustom() {
+    const isCustom = $("itemLevel").value === "custom";
+    const custom = $("itemLevelCustom");
+    custom.hidden = !isCustom;
+    if (isCustom) custom.focus();
   }
 
   function syncEnhanceMode() {
@@ -443,7 +459,11 @@
       syncEventNote();
     });
     $("mvp").addEventListener("change", syncRateCostTable);
-    $("itemLevel").addEventListener("change", syncEnhanceMode);
+    $("itemLevel").addEventListener("change", () => {
+      syncItemLevelCustom();
+      syncEnhanceMode();
+    });
+    $("itemLevelCustom").addEventListener("input", syncEnhanceMode);
     $("starCatching").addEventListener("change", syncEnhanceMode);
     $("safeguard").addEventListener("change", () => {
       syncEnhanceMode();
@@ -454,6 +474,7 @@
       syncRateCostTable();
       syncEventNote();
     });
+    syncItemLevelCustom();
     syncEnhanceMode();
     syncBoomTable();
     syncEventNote();
