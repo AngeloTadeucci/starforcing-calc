@@ -120,12 +120,13 @@
       if (opts.mvp === "diamond") mult -= 0.1;
     }
     // Event cost discount (30% off — thirtyOff and shiningStarForce both grant it).
-    // Confirmed by patch notes: the discount applies to the new Enhancement Modes,
-    // and a "30% off" is 30% off the cost you actually pay — i.e. the full enhanced
-    // cost — so modes 2–4 scale the whole multiplier (mult *= 0.70). This is the
-    // faithful continuation of Mode 1, where you also pay 30% less: for Mode 1
-    // (em null, mult = 1) it's identical to the classic mult -= 0.30 path, which is
-    // kept below so the safeguard premium (+2) discounts exactly as it always has.
+    // Confirmed in-game during SSF (2026-06): the discount is a flat 30% off the
+    // cost you actually pay — i.e. the full enhanced cost — so modes 2–4 scale the
+    // whole multiplier (mult *= 0.70). Verified at 18→19 Mode 4 (mult 6.5): the
+    // SSF/non-SSF cost ratio measured 0.6998 at both item lvl 200 and 250, and the
+    // absolute lvl-250 cost (4.114B → 2.879B) matches base × 6.5 × 0.70 exactly.
+    // For Mode 1 (em null, mult = 1) this is identical to the classic mult -= 0.30
+    // path, kept below so the safeguard premium (+2) discounts as it always has.
     const costEvent =
       opts.event === "thirtyOff" || opts.event === "shiningStarForce";
     if (costEvent) {
