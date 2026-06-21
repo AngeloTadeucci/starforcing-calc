@@ -36,8 +36,13 @@
   // path - Mode 1 is 1× cost with vanilla rates, so it is identical to "off" and
   // still honours the Safeguard toggle. Stars outside 15–21 also return null.
   function enhanceEntry(currentStar, opts) {
-    const mode = planFor(currentStar, opts).mode;
+    let mode = planFor(currentStar, opts).mode;
     if (!mode || mode < 2 || mode > 4) return null;
+    // Stars 15–17 cap at Mode 3 in-game: Mode 4 (0% boom) was removed because
+    // Safeguard already reaches 0% boom there, so it's selected via the Safeguard
+    // toggle, not the slider. Clamp any stray Mode 4 (global slider, stale saved
+    // plan) down to 3 so we never use the phantom table[3] entry for these stars.
+    if (currentStar <= 17 && mode > 3) mode = 3;
     const table = global.ENHANCE_MODE[currentStar];
     return table ? table[mode - 1] : null;
   }

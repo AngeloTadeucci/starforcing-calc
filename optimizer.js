@@ -20,17 +20,19 @@
   // Stars where Enhancement Modes exist (15–21); safeguard only on 15–17.
   const PLAN_STARS = [15, 16, 17, 18, 19, 20, 21];
 
-  // The choices the optimizer can assign to one star. 15–17 get an extra
-  // "Mode 1 + Safeguard" entry (safeguard only stacks on Mode 1); 18–21 are
-  // plain Mode 1–4.
+  // The choices the optimizer can assign to one star. On stars 15–17 the live
+  // game caps the Enhancement Mode slider at 3 — Mode 4 (0% boom) was removed as
+  // redundant with Safeguard, which gives the same 0% boom there — so those stars
+  // expose Modes 1–3 plus a "Mode 1 + Safeguard" entry (safeguard only stacks on
+  // Mode 1). Stars 18–21 have no Safeguard, so Mode 4 remains their boom-free path.
   function starOptions(star) {
     const opts = [
       { mode: 1, safeguard: false },
       { mode: 2, safeguard: false },
       { mode: 3, safeguard: false },
-      { mode: 4, safeguard: false },
     ];
     if (star <= 17) opts.splice(1, 0, { mode: 1, safeguard: true });
+    else opts.push({ mode: 4, safeguard: false });
     return opts;
   }
 

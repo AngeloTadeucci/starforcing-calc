@@ -338,7 +338,7 @@
     1: "Mode 1 — 1× cost · baseline",
     2: "Mode 2 — 1.5× cost (15–17★) | 2× cost (18–21★)",
     3: "Mode 3 — 2.5× cost (15–17★) | 3.5× cost (18–21★)",
-    4: "Mode 4 — 3× cost (15–17★) | 6.5× cost (18–21★) · no boom",
+    4: "Mode 4 — 18–21★ only (6.5× cost · no boom); 15–17★ cap at Mode 3 — use Safeguard",
   };
 
   function syncRateCostTable() {
@@ -349,6 +349,10 @@
       .map((star) => {
         const cols = [1, 2, 3, 4]
           .map((m) => {
+            // Mode 4 doesn't exist on 15–17 (capped at 3; use Safeguard for 0% boom).
+            if (m === 4 && star <= 17) {
+              return `<td class="num" data-mode-col="${m}"><span class="zero">—</span></td>`;
+            }
             const opts = {
               enhanceMode: m,
               mvp: $("mvp").value,
@@ -443,6 +447,8 @@
         p && typeof p.mode === "number"
           ? { mode: p.mode, safeguard: !!p.safeguard }
           : Object.assign({}, DEFAULT_PLAN[star]);
+      // Sanitize stale payloads: 15–17 cap at Mode 3 (Mode 4 was removed in-game).
+      if (star <= 17 && plan[star].mode > 3) plan[star].mode = 3;
     });
     return plan;
   }
@@ -471,7 +477,10 @@
     const saved = loadPlan();
     $("plan-table-body").innerHTML = PLAN_STARS.map((star) => {
       const p = saved[star];
-      const modeOpts = [1, 2, 3, 4]
+      // Stars 15–17 cap at Mode 3 in-game (Mode 4 was removed as redundant with
+      // Safeguard, which reaches 0% boom there); 18–21 keep Mode 4.
+      const modes = star <= 17 ? [1, 2, 3] : [1, 2, 3, 4];
+      const modeOpts = modes
         .map(
           (m) =>
             `<option value="${m}"${m === p.mode ? " selected" : ""}>Mode ${m}</option>`,
