@@ -4,6 +4,27 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>v269 GMS Star Force Calculator</title>
+        <meta name="theme-color" content="#0d0e11" />
+        <script>
+            // Stamp the theme on <html> before the stylesheet loads so the
+            // first paint is already in the right theme (no flash). Stored
+            // preference wins; otherwise follow the OS, defaulting to dark.
+            (function () {
+                var theme = "dark";
+                try {
+                    var stored = localStorage.getItem("sf-theme");
+                    if (stored === "light" || stored === "dark") {
+                        theme = stored;
+                    } else if (
+                        window.matchMedia("(prefers-color-scheme: light)")
+                            .matches
+                    ) {
+                        theme = "light";
+                    }
+                } catch (e) {}
+                document.documentElement.dataset.theme = theme;
+            })();
+        </script>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
@@ -36,6 +57,46 @@
                         </svg>
                         Report an issue
                     </a>
+                    <button
+                        type="button"
+                        id="themeToggle"
+                        class="theme-toggle"
+                        aria-label="Switch to light theme"
+                    >
+                        <svg
+                            class="icon-sun"
+                            viewBox="0 0 24 24"
+                            width="15"
+                            height="15"
+                            aria-hidden="true"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <circle cx="12" cy="12" r="4" />
+                            <path
+                                d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+                            />
+                        </svg>
+                        <svg
+                            class="icon-moon"
+                            viewBox="0 0 24 24"
+                            width="15"
+                            height="15"
+                            aria-hidden="true"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                            />
+                        </svg>
+                    </button>
                 </div>
                 <p class="subtitle">
                     Simulates star-force outcomes with the new enhancement modes in v269 GMS.

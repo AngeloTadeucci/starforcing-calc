@@ -10,10 +10,15 @@
   const PLAN_STORAGE_KEY = "sf-star-plan";
   const TAB_STORAGE_KEY = "sf-active-tab";
   const OPT_STORAGE_KEY = "sf-optimize";
+  // Also read by the <head> bootstrap script that stamps data-theme pre-paint.
+  const THEME_STORAGE_KEY = "sf-theme";
 
   // The plan produced by the last Optimize run, held so "Apply to Per-star
   // matrix" can write it into the editable matrix.
   let lastOptimizedPlan = null;
+  // Stats from the last simulation, held so the histograms (canvas pixels, not
+  // CSS) can be redrawn when the theme changes.
+  let lastStats = null;
   // Default plan: safeguard 15–17, Mode 1 on 18–19, Mode 4 on 20–21.
   const DEFAULT_PLAN = {
     15: { mode: 1, safeguard: true },
@@ -37,6 +42,47 @@
   function fmtInt(n) {
     if (!Number.isFinite(n)) return "—";
     return Math.round(n).toLocaleString("en-US");
+  }
+
+  // ── Theme ─────────────────────────────────────────────────────────────────
+  // The <head> bootstrap script sets data-theme before first paint; from here
+  // on this module owns it (toggle clicks + OS changes while no explicit pick).
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement)
+      .getPropertyValue(name)
+      .trim();
+  }
+
+  function parseHexColor(hex) {
+    const m = /^#([0-9a-f]{6})$/i.exec(hex);
+    if (!m) return null;
+    const n = parseInt(m[1], 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  function currentTheme() {
+    return document.documentElement.dataset.theme === "light"
+      ? "light"
+      : "dark";
+  }
+
+  function applyTheme(theme, persist) {
+    document.documentElement.dataset.theme = theme;
+    if (persist) {
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, theme);
+      } catch (e) {}
+    }
+    const next = theme === "light" ? "dark" : "light";
+    const btn = $("themeToggle");
+    btn.setAttribute("aria-label", `Switch to ${next} theme`);
+    btn.title = `Switch to ${next} theme`;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = cssVar("--bg") || "#0d0e11";
+    // Re-render everything that bakes theme colours into inline styles or
+    // canvas pixels — CSS variables cover the rest.
+    syncRateCostTable();
+    redrawHistograms();
   }
 
   // Item level comes from the dropdown, except when "Custom…" is selected, in
@@ -178,7 +224,7 @@
     const maxCount = buckets.reduce((m, b) => Math.max(m, b.count), 0) || 1;
     const barW = w / buckets.length;
 
-    ctx.fillStyle = "#d4a259";
+    ctx.fillStyle = cssVar("--accent") || "#d4a259";
     for (let i = 0; i < buckets.length; i++) {
       const barH = (buckets[i].count / maxCount) * h;
       const x = padL + i * barW;
@@ -186,13 +232,13 @@
       ctx.fillRect(x + 1, y, Math.max(1, barW - 2), barH);
     }
 
-    ctx.strokeStyle = "#24272e";
+    ctx.strokeStyle = cssVar("--border") || "#24272e";
     ctx.beginPath();
     ctx.moveTo(padL, padT + h + 0.5);
     ctx.lineTo(padL + w, padT + h + 0.5);
     ctx.stroke();
 
-    ctx.fillStyle = "#8a8d96";
+    ctx.fillStyle = cssVar("--muted") || "#8a8d96";
     ctx.font = '10.5px "IBM Plex Mono", ui-monospace, monospace';
     ctx.textBaseline = "top";
     ctx.textAlign = "left";
@@ -244,6 +290,26 @@
     canvas.onmouseleave = () => {
       tooltip.style.display = "none";
     };
+  }
+
+  function drawHistograms(stats) {
+    drawHistogram("histogram", stats.buckets, fmtAxis, {
+      total: stats.trials,
+    });
+    drawHistogram(
+      "histogram-booms",
+      stats.boomBuckets,
+      (n) => String(Math.round(n)),
+      { total: stats.trials, singleValue: true },
+    );
+  }
+
+  // Repaint the last run's histograms in the new theme's colours. Skipped when
+  // the results panel is hidden — its canvases have zero client size there, so
+  // a draw would blank them; the next run redraws from scratch anyway.
+  function redrawHistograms() {
+    if (!lastStats || $("results").classList.contains("hidden")) return;
+    drawHistograms(lastStats);
   }
 
   // Run the simulation off the main thread via a Web Worker so the UI stays
@@ -316,17 +382,10 @@
       const stats = await runSimulation(input, (done, total) => {
         btn.textContent = `Running ${done.toLocaleString("en-US")} / ${total.toLocaleString("en-US")}`;
       });
+      lastStats = stats;
       $("results").classList.remove("hidden");
       renderResults(stats);
-      drawHistogram("histogram", stats.buckets, fmtAxis, {
-        total: stats.trials,
-      });
-      drawHistogram(
-        "histogram-booms",
-        stats.boomBuckets,
-        (n) => String(Math.round(n)),
-        { total: stats.trials, singleValue: true },
-      );
+      drawHistograms(stats);
     } finally {
       btn.disabled = false;
       btn.classList.remove("is-running");
@@ -343,6 +402,11 @@
 
   function syncRateCostTable() {
     const itemLevel = readItemLevel() || 200;
+
+    // Success-% gradient endpoints: accent (good odds) → error (bad odds),
+    // read from the active theme so the inline colours work in both modes.
+    const gradHi = parseHexColor(cssVar("--accent")) || [212, 162, 89];
+    const gradLo = parseHexColor(cssVar("--error")) || [201, 122, 122];
 
     const stars = [15, 16, 17, 18, 19, 20, 21];
     $("rate-cost-table-body").innerHTML = stars
@@ -367,9 +431,11 @@
             const pct = (s * 100).toFixed(1) + "%";
             // fmtMesos rolls over to "B" above 1000 M (and "T" above 1000 B).
             const costStr = fmtMesos(cost);
-            // Gradient: amber #d4a259 (30%+) → red #c97a7a (8% and below)
+            // Gradient: accent (30%+) → error (8% and below)
             const t = Math.max(0, Math.min(1, (s - 0.08) / (0.3 - 0.08)));
-            const pctColor = `rgb(${Math.round(201 + 11 * t)},${Math.round(122 + 40 * t)},${Math.round(122 - 33 * t)})`;
+            const pctColor = `rgb(${gradLo
+              .map((lo, ch) => Math.round(lo + (gradHi[ch] - lo) * t))
+              .join(",")})`;
             return `<td class="num" data-mode-col="${m}"><span style="color:${pctColor}">${pct}</span><br><span class="table-sub">${costStr}</span></td>`;
           })
           .join("");
@@ -852,6 +918,27 @@
     );
     $("optimizeBtn").addEventListener("click", runOptimize);
     loadOptSettings();
+
+    // Theme: the toggle stores an explicit pick; OS switches only follow
+    // through while the user hasn't made one.
+    $("themeToggle").addEventListener("click", () => {
+      applyTheme(currentTheme() === "light" ? "dark" : "light", true);
+    });
+    const lightMq = window.matchMedia("(prefers-color-scheme: light)");
+    if (lightMq.addEventListener) {
+      lightMq.addEventListener("change", (e) => {
+        let stored = null;
+        try {
+          stored = localStorage.getItem(THEME_STORAGE_KEY);
+        } catch (err) {}
+        if (stored !== "light" && stored !== "dark") {
+          applyTheme(e.matches ? "light" : "dark", false);
+        }
+      });
+    }
+    // Sync the toggle's label and the theme-color meta with the theme the
+    // bootstrap script picked (and repaint nothing — no results exist yet).
+    applyTheme(currentTheme(), false);
 
     syncItemLevelCustom();
     syncEnhanceMode();
