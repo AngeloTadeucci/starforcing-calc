@@ -1021,12 +1021,23 @@
       if (s.transferAt < ctx.goalStar - 1 && s !== best) collapsed.push(s);
       else shown.push(s);
     }
+    // Name the modes the finish taps actually use, so "0 booms" reads as a
+    // plan and not an assumption: Mode 4 covers 18–21★, Safeguard 15–17★.
+    // No star range here — "Transfer at N★" plus the goal already implies it,
+    // and the sub must stay one line so rows keep their height.
+    const tapsLabel = (startStar) => {
+      const lo = Math.max(15, startStar);
+      const hi = ctx.goalStar - 1;
+      if (lo > 17) return "Mode 4 taps";
+      if (hi <= 17) return "SG taps";
+      return "SG+M4 taps";
+    };
     const fodderRow = (s) => ({
       label: `Transfer at ${s.transferAt}★`,
       sub:
         s.startStar >= ctx.goalStar
           ? `${fmtMesos(s.fodderMesos)} fodder · no taps`
-          : `${fmtMesos(s.fodderMesos)} fodder · ${fmtMesos(s.finishMesos)} taps ${s.startStar}★→${ctx.goalStar}★`,
+          : `${fmtMesos(s.fodderMesos)} fodder · ${fmtMesos(s.finishMesos)} ${tapsLabel(s.startStar)}`,
       total: s.total,
       spares: "0",
       copies: "~" + s.copies.toFixed(1),
@@ -1041,7 +1052,7 @@
           : `${collapsed[0].transferAt}–${collapsed[collapsed.length - 1].transferAt}★`;
       fodderRows.unshift({
         label: `Transfer at ${range}`,
-        sub: "just don't — too expensive",
+        sub: "Just don't — too expensive",
         total: null,
         totalText: `≥ ${fmtMesos(cheapest.total)}`,
         spares: "0",

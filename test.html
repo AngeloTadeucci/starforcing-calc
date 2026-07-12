@@ -43,5 +43,12 @@
     itemLevel: 200, fodderLevel: 150, goalStar: 22,
     baseOpts: { mvp: "none", event: "none", starCatching: true },
   }).levelGapOk === false);
+  // Boom-reduction events + MVP make the 23★ overshoot ~tie 21★ on price
+  // (within ~1%); the pick must break toward fewer copies, not the raw min.
+  const frTie = SF.fodder.compare({
+    itemLevel: 150, fodderLevel: 140, goalStar: 22,
+    baseOpts: { mvp: "diamond", event: "shiningStarForce", starCatching: true },
+  });
+  check("fodder: near-tie breaks toward fewer copies (21★, not 23★)", frTie.best.transferAt === 21);
 </script>
 </body></html>

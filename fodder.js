@@ -81,8 +81,23 @@
       });
     }
 
-    let best = strategies[0];
-    for (const s of strategies) if (s.total < best.total) best = s;
+    // Near-ties on price break toward fewer fodder copies. Boom-reduction
+    // events + MVP can put the copy-hungry overshoot plan a fraction of a
+    // percent below transferring at goal−1; recommending 3× the copies to
+    // save ~0.2% mesos is bad advice when every copy is an item to farm.
+    // (With a fodder price set, copies are already priced into total.)
+    const PRICE_TOL = 1.02;
+    let cheapest = strategies[0];
+    for (const s of strategies) if (s.total < cheapest.total) cheapest = s;
+    let best = cheapest;
+    for (const s of strategies) {
+      if (s.total > cheapest.total * PRICE_TOL) continue;
+      if (
+        s.copies < best.copies ||
+        (s.copies === best.copies && s.total < best.total)
+      )
+        best = s;
+    }
 
     return {
       rawCheap,
