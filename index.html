@@ -8,7 +8,7 @@
         </title>
         <meta
             name="description"
-            content="Free MapleStory Star Force calculator for GMS v269 with the new Enhancement Modes 1–4. Simulate meso cost and boom chance per star, and optimize the cheapest path to 22★ and beyond."
+            content="Free MapleStory Star Force calculator for GMS v269 with the new Enhancement Modes 1–4. Simulate meso cost and boom chance per star, optimize the cheapest path to 22★, and compare fodder / star force transfer strategies."
         />
         <link rel="canonical" href="https://starforce.tadeucci.dev/" />
         <meta
@@ -191,6 +191,15 @@
                     aria-selected="false"
                 >
                     Optimizer
+                </button>
+                <button
+                    type="button"
+                    id="tab-fodder"
+                    class="tab"
+                    role="tab"
+                    aria-selected="false"
+                >
+                    Fodder
                 </button>
             </div>
 
@@ -693,6 +702,77 @@
                         </div>
                     </article>
                 </section>
+
+                <section
+                    class="reference fodder-panel hidden"
+                    id="fodderPanel"
+                >
+                    <article class="panel">
+                        <header class="panel-head">
+                            <span class="panel-title"
+                                >Fodder &amp; star transfer</span
+                            >
+                            <span class="panel-unit">vs raw tapping</span>
+                        </header>
+                        <div class="panel-body opt-body">
+                            <div class="opt-controls">
+                                <label>
+                                    <span class="field-label"
+                                        >Fodder item level
+                                        <em class="hint"
+                                            >(transfer accepts up to 10 levels
+                                            below)</em
+                                        ></span
+                                    >
+                                    <input
+                                        type="number"
+                                        id="fodderLevel"
+                                        min="1"
+                                        max="300"
+                                        value="190"
+                                    />
+                                </label>
+                                <label>
+                                    <span class="field-label"
+                                        >Fodder copy price
+                                        <em class="hint"
+                                            >(millions each · 0 to
+                                            ignore)</em
+                                        ></span
+                                    >
+                                    <input
+                                        type="number"
+                                        id="fodderPrice"
+                                        min="0"
+                                        step="1"
+                                        value="0"
+                                    />
+                                </label>
+                                <label>
+                                    <span class="field-label"
+                                        >Target spare price
+                                        <em class="hint"
+                                            >(millions each · 0 if
+                                            priceless)</em
+                                        ></span
+                                    >
+                                    <input
+                                        type="number"
+                                        id="sparePrice"
+                                        min="0"
+                                        step="1"
+                                        value="0"
+                                    />
+                                </label>
+                            </div>
+                            <div
+                                id="fodderResult"
+                                class="opt-result"
+                                aria-live="polite"
+                            ></div>
+                        </div>
+                    </article>
+                </section>
             </div>
 
             <section id="results" class="results hidden" aria-live="polite">
@@ -835,7 +915,11 @@
                         Optimizer finds the plan with the best odds of hitting
                         your target star for your meso budget and spares. All
                         rates and costs are confirmed in-game; events, MVP
-                        discounts, and star catching are supported.
+                        discounts, and star catching are supported. The Fodder
+                        tab compares star force transfer strategies —
+                        enhancing a cheaper fodder item and transferring its
+                        stars onto the real one — against tapping the real
+                        item directly, and finds the cheapest transfer star.
                     </p>
                 </div>
             </section>
@@ -844,6 +928,7 @@
         <script src="rates.js"></script>
         <script src="simulator.js"></script>
         <script src="optimizer.js"></script>
+        <script src="fodder.js"></script>
         <script src="app.js"></script>
     </body>
 </html>

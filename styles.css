@@ -1222,6 +1222,32 @@ th[data-mode-col].active-mode-col {
   padding: 14px 16px 16px;
 }
 
+/* ── Fodder tab ────────────────────────────────────────── */
+/* No actions row between the controls and the live result, so the controls
+   carry the bottom padding themselves. */
+.fodder-panel .opt-controls {
+  padding-bottom: 16px;
+}
+
+/* Strategy labels are sentences, not star ranges — let them wrap. */
+.fodder-table tbody td:first-child {
+  white-space: normal;
+}
+
+.fodder-table .fodder-best td {
+  background: var(--active-col-bg);
+}
+
+/* The collapsed always-dominated transfer range reads as a footnote, not an
+   option. */
+.fodder-table .fodder-dominated td {
+  color: var(--muted-2);
+}
+
+.fodder-table .fodder-best td:first-child {
+  color: var(--accent);
+}
+
 @media (max-width: 540px) {
   .opt-controls {
     padding: 14px 12px 0;

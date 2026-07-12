@@ -3,6 +3,8 @@
 <body><pre id="out"></pre>
 <script src="rates.js"></script>
 <script src="simulator.js"></script>
+<script src="optimizer.js"></script>
+<script src="fodder.js"></script>
 <script>
   const log = (...a) => document.getElementById("out").textContent += a.join(" ") + "\n";
   log("baseCost(17, 160):", SF.baseCost(17, 160));
@@ -11,5 +13,35 @@
   log("boomDropStar(20):", SF.boomDropStar(20));   // 15
   log("boomDropStar(15):", SF.boomDropStar(15));   // 12
   log("boomDropStar(26):", SF.boomDropStar(26));   // 20
+
+  // Fodder comparison — expectations cross-checked against the closed-form
+  // optimizer math run standalone (level 160 target, level 150 fodder, 22★).
+  const check = (name, cond) => log((cond ? "PASS" : "FAIL") + "  " + name);
+  const near = (a, b, tol) => Math.abs(a - b) <= tol * Math.abs(b);
+  const fr = SF.fodder.compare({
+    itemLevel: 160, fodderLevel: 150, goalStar: 22,
+    baseOpts: { mvp: "none", event: "none", starCatching: true },
+  });
+  check("fodder: rawCheap ~16.85B", near(fr.rawCheap.total, 16.85e9, 0.001));
+  check("fodder: rawZero ~52.14B", near(fr.rawZero.total, 52.14e9, 0.001));
+  check("fodder: sweep is 16..23★", fr.strategies.length === 8 && fr.strategies[7].transferAt === 23);
+  const t21 = fr.strategies.find((s) => s.transferAt === 21);
+  const t22 = fr.strategies.find((s) => s.transferAt === 22);
+  check("fodder: best transfer is 21★", fr.best.transferAt === 21);
+  check("fodder: transfer@21 ~21.43B", near(t21.total, 21.43e9, 0.001));
+  check("fodder: transfer@22 ~24.57B", near(t22.total, 24.57e9, 0.001));
+  check("fodder: overshoot row needs no taps", fr.strategies[7].finishMesos === 0);
+  const fr2 = SF.fodder.compare({
+    itemLevel: 160, fodderLevel: 150, goalStar: 22,
+    fodderPrice: 100e6, sparePrice: 2e9,
+    baseOpts: { mvp: "none", event: "none", starCatching: true },
+  });
+  const t21p = fr2.strategies.find((s) => s.transferAt === 21);
+  check("fodder: copy price folds into totals", near(t21p.total, t21.total + 100e6 * t21.copies, 1e-9));
+  check("fodder: spare price folds into raw", near(fr2.rawCheap.total, fr.rawCheap.total + fr.rawCheap.spares * 2e9, 1e-9));
+  check("fodder: level gap >10 flagged", SF.fodder.compare({
+    itemLevel: 200, fodderLevel: 150, goalStar: 22,
+    baseOpts: { mvp: "none", event: "none", starCatching: true },
+  }).levelGapOk === false);
 </script>
 </body></html>

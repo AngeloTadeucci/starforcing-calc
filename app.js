@@ -10,6 +10,7 @@
   const PLAN_STORAGE_KEY = "sf-star-plan";
   const TAB_STORAGE_KEY = "sf-active-tab";
   const OPT_STORAGE_KEY = "sf-optimize";
+  const FODDER_STORAGE_KEY = "sf-fodder";
   // Also read by the <head> bootstrap script that stamps data-theme pre-paint.
   const THEME_STORAGE_KEY = "sf-theme";
 
@@ -621,36 +622,42 @@
 
   function setTab(tab) {
     activeTab =
-      tab === "perstar" || tab === "optimize" ? tab : "quick";
+      tab === "perstar" || tab === "optimize" || tab === "fodder"
+        ? tab
+        : "quick";
     const quick = activeTab === "quick";
     const perStar = activeTab === "perstar";
     const optimize = activeTab === "optimize";
+    const fodder = activeTab === "fodder";
     $("tab-quick").classList.toggle("is-active", quick);
     $("tab-perstar").classList.toggle("is-active", perStar);
     $("tab-optimize").classList.toggle("is-active", optimize);
+    $("tab-fodder").classList.toggle("is-active", fodder);
     $("tab-quick").setAttribute("aria-selected", String(quick));
     $("tab-perstar").setAttribute("aria-selected", String(perStar));
     $("tab-optimize").setAttribute("aria-selected", String(optimize));
+    $("tab-fodder").setAttribute("aria-selected", String(fodder));
     // The global mode slider + safeguard checkbox and the reference tables
-    // belong to the Quick tab only; Per-star and Optimize replace the right
-    // column with their own panels.
+    // belong to the Quick tab only; Per-star, Optimize and Fodder replace the
+    // right column with their own panels.
     $("enhanceModeRow").classList.toggle("hidden", !quick);
     $("safeguardField").classList.toggle("hidden", !quick);
     $("referencePanels").classList.toggle("hidden", !quick);
     $("perStarPanel").classList.toggle("hidden", !perStar);
     $("optimizePanel").classList.toggle("hidden", !optimize);
-    // Simulation results belong to the Quick/Per-star runs; the Optimize tab
-    // can't run a sim, so any results still on screen are from a previous run
-    // under a different plan/mode. Leaving them up makes the optimizer look
-    // like it produced boom counts that contradict its own recommendation
-    // (e.g. a 0-boom Mode 4 plan next to a histogram full of booms), so clear
-    // the panel when landing here.
-    if (optimize) $("results").classList.add("hidden");
+    $("fodderPanel").classList.toggle("hidden", !fodder);
+    // Simulation results belong to the Quick/Per-star runs; the Optimize and
+    // Fodder tabs can't run a sim, so any results still on screen are from a
+    // previous run under a different plan/mode. Leaving them up makes those
+    // tabs look like they produced boom counts that contradict their own
+    // recommendation (e.g. a 0-boom Mode 4 plan next to a histogram full of
+    // booms), so clear the panel when landing there.
+    if (optimize || fodder) $("results").classList.add("hidden");
     // The form's "Run simulation" button has no clear mode to run on the
-    // Optimize tab (no global slider, no plan yet), so hide it there — the
-    // Optimize button + "Apply to Per-star matrix" is the path to a run.
-    $("formActions").classList.toggle("hidden", optimize);
+    // Optimize/Fodder tabs (no global slider, no plan), so hide it there.
+    $("formActions").classList.toggle("hidden", optimize || fodder);
     if (perStar) syncPlanTable();
+    if (fodder) syncFodder();
     try {
       localStorage.setItem(TAB_STORAGE_KEY, activeTab);
     } catch (e) {}
@@ -867,6 +874,198 @@
     setTab("perstar");
   }
 
+  // ── Fodder tab ──────────────────────────────────────────────────────────
+  // Everything here is closed-form (SF.fodder → optimizer.planMetrics), so the
+  // comparison recomputes live on any input change — no run button needed.
+
+  function loadFodderSettings() {
+    let s = null;
+    try {
+      const raw = localStorage.getItem(FODDER_STORAGE_KEY);
+      if (raw) s = JSON.parse(raw);
+    } catch (e) {}
+    if (!s) return;
+    if (Number.isFinite(s.price)) $("fodderPrice").value = s.price;
+    if (Number.isFinite(s.spare)) $("sparePrice").value = s.spare;
+  }
+
+  function saveFodderSettings() {
+    try {
+      localStorage.setItem(
+        FODDER_STORAGE_KEY,
+        JSON.stringify({
+          price: parseFloat($("fodderPrice").value),
+          spare: parseFloat($("sparePrice").value),
+        }),
+      );
+    } catch (e) {}
+  }
+
+  // The fodder level tracks the item level at the maximum transfer gap (−10);
+  // an explicit edit sticks until the item level changes again.
+  function syncFodderLevelDefault() {
+    const itemLevel = readItemLevel();
+    if (Number.isFinite(itemLevel)) {
+      $("fodderLevel").value = Math.max(1, itemLevel - SF.fodder.MAX_LEVEL_GAP);
+    }
+  }
+
+  // Millions-denominated optional money field: blank/invalid reads as 0.
+  function readMillions(id) {
+    const v = parseFloat($(id).value);
+    return Number.isFinite(v) && v > 0 ? v * 1e6 : 0;
+  }
+
+  function fodderError(msg) {
+    $("fodderResult").innerHTML = msg
+      ? `<p class="opt-note opt-warn">${msg}</p>`
+      : "";
+  }
+
+  function syncFodder() {
+    if (activeTab !== "fodder") return;
+
+    const itemLevel = readItemLevel();
+    const fodderLevel = parseInt($("fodderLevel").value, 10);
+    const formTarget = parseInt($("targetStar").value, 10);
+    if (!Number.isFinite(itemLevel) || itemLevel < 1 || itemLevel > 300) {
+      fodderError("Item level must be between 1 and 300.");
+      return;
+    }
+    if (!Number.isFinite(fodderLevel) || fodderLevel < 1 || fodderLevel > 300) {
+      fodderError("Fodder item level must be between 1 and 300.");
+      return;
+    }
+    if (!Number.isFinite(formTarget) || formTarget < 2 || formTarget > 30) {
+      fodderError("Target ★ must be between 2 and 30.");
+      return;
+    }
+    // Zero-boom finishing only exists through 21★, and past 22★ every
+    // strategy taps the same item identically — so the comparison runs to 22★.
+    const goalStar = Math.min(formTarget, 22);
+    if (goalStar < 16) {
+      fodderError(
+        "Foddering only matters from 16★ up — below that there are no booms to avoid, so just tap the item.",
+      );
+      return;
+    }
+
+    const result = SF.fodder.compare({
+      itemLevel,
+      fodderLevel,
+      goalStar,
+      fodderPrice: readMillions("fodderPrice"),
+      sparePrice: readMillions("sparePrice"),
+      baseOpts: {
+        mvp: $("mvp").value,
+        event: $("event").value,
+        starCatching: $("starCatching").checked,
+      },
+    });
+    renderFodderResult(result, { goalStar, formTarget, itemLevel, fodderLevel });
+  }
+
+  function renderFodderResult(result, ctx) {
+    const { rawCheap, rawZero, strategies, best } = result;
+
+    const summaryItems = [
+      { k: "Best transfer", v: `at ${best.transferAt}★` },
+      { k: "Expected cost", v: fmtMesos(best.total) },
+      { k: "Fodder copies", v: "~" + best.copies.toFixed(1) },
+    ];
+    const summary =
+      '<div class="opt-summary">' +
+      summaryItems
+        .map(
+          (s) =>
+            `<div><span class="opt-k">${s.k}</span><span class="opt-v">${s.v}</span></div>`,
+        )
+        .join("") +
+      "</div>";
+
+    // Only conditional warnings — the cards and the table carry the verdict.
+    let notes = "";
+    if (!result.levelGapOk) {
+      notes += `<p class="opt-note opt-warn">Transfers accept a fodder 1–${SF.fodder.MAX_LEVEL_GAP} levels below the target — level ${ctx.fodderLevel} fodder can't transfer onto a level ${ctx.itemLevel} item.</p>`;
+    }
+    if (ctx.formTarget > ctx.goalStar) {
+      notes += `<p class="opt-note">Compared up to ${ctx.goalStar}★ — past that every plan taps the same item.</p>`;
+    }
+
+    const rawRows = [
+      {
+        label: "Raw tap, Mode 1",
+        sub: "Cheapest, booms a lot. Duh.",
+        total: rawCheap.total,
+        spares: `~${rawCheap.spares.toFixed(1)}`,
+        copies: "—",
+        cls: "",
+      },
+      {
+        label: "Raw tap, zero-boom",
+        sub: "SG 15–17 · Mode 4 18–21",
+        total: rawZero.total,
+        spares: "0",
+        copies: "—",
+        cls: "",
+      },
+    ];
+
+    // Transferring far below the goal is always dominated — the target still
+    // pays the expensive Mode 4 stars the fodder was meant to absorb — so
+    // collapse everything under (goal − 1) into a single dismissive row and
+    // only itemize the transfer stars actually worth weighing.
+    const shown = [];
+    const collapsed = [];
+    for (const s of strategies) {
+      if (s.transferAt < ctx.goalStar - 1 && s !== best) collapsed.push(s);
+      else shown.push(s);
+    }
+    const fodderRow = (s) => ({
+      label: `Transfer at ${s.transferAt}★`,
+      sub:
+        s.startStar >= ctx.goalStar
+          ? `${fmtMesos(s.fodderMesos)} fodder · no taps`
+          : `${fmtMesos(s.fodderMesos)} fodder · ${fmtMesos(s.finishMesos)} taps ${s.startStar}★→${ctx.goalStar}★`,
+      total: s.total,
+      spares: "0",
+      copies: "~" + s.copies.toFixed(1),
+      cls: s === best ? " class=\"fodder-best\"" : "",
+    });
+    const fodderRows = shown.map(fodderRow);
+    if (collapsed.length > 0) {
+      const cheapest = collapsed.reduce((m, s) => (s.total < m.total ? s : m));
+      const range =
+        collapsed.length === 1
+          ? `${collapsed[0].transferAt}★`
+          : `${collapsed[0].transferAt}–${collapsed[collapsed.length - 1].transferAt}★`;
+      fodderRows.unshift({
+        label: `Transfer at ${range}`,
+        sub: "just don't — too expensive",
+        total: null,
+        totalText: `≥ ${fmtMesos(cheapest.total)}`,
+        spares: "0",
+        copies: "—",
+        cls: ' class="fodder-dominated"',
+      });
+    }
+
+    const rows = rawRows
+      .concat(fodderRows)
+      .map(
+        (r) =>
+          `<tr${r.cls}><td>${r.label}${r.sub ? `<br><span class="table-sub">${r.sub}</span>` : ""}</td><td class="num">${r.totalText || fmtMesos(r.total)}</td><td class="num">${r.spares}</td><td class="num">${r.copies}</td></tr>`,
+      )
+      .join("");
+
+    const table = `<table class="mode-table plan-table opt-table fodder-table">
+      <thead><tr><th>Plan</th><th>Cost</th><th title="Expected booms of the target item — each destroys it and costs a spare">Booms</th><th title="Fodder items consumed (1 + expected fodder booms)">Copies</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+    $("fodderResult").innerHTML = summary + notes + table;
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     $("sf-form").addEventListener("submit", onSubmit);
     $("enhanceMode").addEventListener("input", syncEnhanceMode);
@@ -878,8 +1077,12 @@
     $("itemLevel").addEventListener("change", () => {
       syncItemLevelCustom();
       syncEnhanceMode();
+      syncFodderLevelDefault();
     });
-    $("itemLevelCustom").addEventListener("input", syncEnhanceMode);
+    $("itemLevelCustom").addEventListener("input", () => {
+      syncEnhanceMode();
+      syncFodderLevelDefault();
+    });
     $("starCatching").addEventListener("change", syncEnhanceMode);
     $("safeguard").addEventListener("change", () => {
       syncEnhanceMode();
@@ -889,6 +1092,7 @@
     $("tab-quick").addEventListener("click", () => setTab("quick"));
     $("tab-perstar").addEventListener("click", () => setTab("perstar"));
     $("tab-optimize").addEventListener("click", () => setTab("optimize"));
+    $("tab-fodder").addEventListener("click", () => setTab("fodder"));
     // Inputs the matrix's boom%/cost and active-range shading depend on. (The
     // mode slider and safeguard checkbox are Quick-only and don't feed it.)
     // They also feed the optimizer, so clear any stale recommendation too.
@@ -906,6 +1110,7 @@
       el.addEventListener(evt, () => {
         syncPlanTable();
         clearOptResult();
+        syncFodder();
       });
     });
 
@@ -918,6 +1123,17 @@
     );
     $("optimizeBtn").addEventListener("click", runOptimize);
     loadOptSettings();
+
+    // Fodder tab controls — closed-form, so recompute live on every change.
+    $("fodderLevel").addEventListener("input", syncFodder);
+    ["fodderPrice", "sparePrice"].forEach((id) =>
+      $(id).addEventListener("input", () => {
+        saveFodderSettings();
+        syncFodder();
+      }),
+    );
+    loadFodderSettings();
+    syncFodderLevelDefault();
 
     // Theme: the toggle stores an explicit pick; OS switches only follow
     // through while the user hasn't made one.
