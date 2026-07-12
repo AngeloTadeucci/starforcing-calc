@@ -93,6 +93,18 @@ body {
   gap: 16px;
 }
 
+/* Three items no longer fit beside the title on narrow screens; let the
+   button group wrap to its own right-aligned row under the title. */
+@media (max-width: 640px) {
+  .masthead-row {
+    flex-wrap: wrap;
+  }
+
+  .masthead-row h1 {
+    flex-basis: 100%;
+  }
+}
+
 /* Keep the title and subtitle at a comfortable reading width. */
 .masthead h1,
 .subtitle {
@@ -121,6 +133,16 @@ body {
 .issue-link:hover {
   color: var(--accent-2);
   border-color: var(--accent);
+}
+
+/* Ko-fi link sits first in the header's right-aligned group, so it carries
+   the auto margin and the issue link's must be cleared. */
+.kofi-link svg {
+  color: #ff5e5b;
+}
+
+.kofi-link + .issue-link {
+  margin-left: 0;
 }
 
 /* Square icon button next to the issue link; overrides the global filled
