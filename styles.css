@@ -181,24 +181,6 @@ h1 {
   font-size: 14px;
 }
 
-/* ── Notice banner ─────────────────────────────────────── */
-.notice {
-  margin: 0 0 24px;
-  padding: 10px 14px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--muted);
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-left: 2px solid var(--accent);
-  border-radius: 4px;
-}
-
-.notice strong {
-  color: var(--accent-2);
-  font-weight: 600;
-}
-
 /* ── Form ──────────────────────────────────────────────── */
 .form {
   background: var(--panel);
@@ -557,9 +539,11 @@ button.is-running {
 .section-title {
   font-family: var(--mono);
   font-size: 10.5px;
+  font-weight: 400;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--muted-2);
+  margin: 0;
 }
 
 .metrics {
@@ -843,6 +827,31 @@ th[data-mode-col].active-mode-col {
     border-bottom: 1px solid var(--border-soft);
     padding: 10px 0;
   }
+}
+
+/* ── About ─────────────────────────────────────────────── */
+.about {
+  margin-top: 56px;
+}
+
+.about-body {
+  max-width: 760px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.about-body p {
+  margin: 0 0 12px;
+}
+
+.about-body p:last-child {
+  margin-bottom: 0;
+}
+
+.about-body strong {
+  color: var(--text);
+  font-weight: 500;
 }
 
 /* ── Colophon ──────────────────────────────────────────── */

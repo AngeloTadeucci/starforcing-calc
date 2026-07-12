@@ -3,8 +3,49 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>v269 GMS Star Force Calculator</title>
+        <title>
+            MapleStory Star Force Calculator — v269 GMS Enhancement Modes
+        </title>
+        <meta
+            name="description"
+            content="Free MapleStory Star Force calculator for GMS v269 with the new Enhancement Modes 1–4. Simulate meso cost and boom chance per star, and optimize the cheapest path to 22★ and beyond."
+        />
+        <link rel="canonical" href="https://starforce.tadeucci.dev/" />
+        <meta
+            property="og:title"
+            content="MapleStory Star Force Calculator — v269 GMS Enhancement Modes"
+        />
+        <meta
+            property="og:description"
+            content="Simulate Star Force meso cost and boom chance with the new Enhancement Modes 1–4 added in GMS v269, and optimize the cheapest plan to your target star."
+        />
+        <meta property="og:url" content="https://starforce.tadeucci.dev/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Star Force Calculator" />
+        <meta name="twitter:card" content="summary" />
         <meta name="theme-color" content="#0d0e11" />
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "WebApplication",
+                "name": "MapleStory Star Force Calculator (v269 GMS)",
+                "url": "https://starforce.tadeucci.dev/",
+                "description": "Star Force enhancement simulator for MapleStory GMS v269 with the new Enhancement Modes 1–4. Estimates meso cost, boom chance, and the optimal per-star mode and safeguard plan.",
+                "applicationCategory": "UtilityApplication",
+                "operatingSystem": "Any",
+                "browserRequirements": "Requires JavaScript",
+                "offers": {
+                    "@type": "Offer",
+                    "price": "0",
+                    "priceCurrency": "USD"
+                },
+                "author": {
+                    "@type": "Person",
+                    "name": "Ângelo Tadeucci",
+                    "url": "https://github.com/AngeloTadeucci"
+                }
+            }
+        </script>
         <script>
             // Stamp the theme on <html> before the stylesheet loads so the
             // first paint is already in the right theme (no flash). Stored
@@ -37,7 +78,7 @@
         <main class="container">
             <header class="masthead">
                 <div class="masthead-row">
-                    <h1>v269 GMS Star Force Calculator</h1>
+                    <h1>MapleStory Star Force Calculator</h1>
                     <a
                         class="issue-link"
                         href="https://github.com/AngeloTadeucci/starforcing-test/issues/new"
@@ -99,15 +140,10 @@
                     </button>
                 </div>
                 <p class="subtitle">
-                    Simulates star-force outcomes with the new enhancement modes in v269 GMS.
+                    Simulates Star Force outcomes with the new Enhancement
+                    Modes added to GMS in v269.
                 </p>
             </header>
-
-            <div class="notice" role="note">
-                Enhancement Mode rates &amp; meso costs are now confirmed in-game
-                (verified during <strong>Shining Star Force</strong>) — fully
-                accurate, all four modes. Happy tapping!
-            </div>
 
             <div class="tabs" role="tablist" aria-label="Calculator mode">
                 <button
@@ -761,6 +797,29 @@
                     </div>
                 </dl>
             </footer>
+
+            <section class="about">
+                <div class="section-head">
+                    <span class="rule"></span>
+                    <h2 class="section-title">About this calculator</h2>
+                    <span class="rule"></span>
+                </div>
+                <div class="about-body">
+                    <p>
+                        A free Star Force calculator for
+                        <strong>MapleStory (GMS)</strong> with the new
+                        <strong>Enhancement Modes</strong> added in v269 —
+                        higher modes cost more mesos on 15★–21★ but boom less
+                        (Mode 4 can't boom at all). It runs Monte Carlo
+                        simulations of meso cost and boom count, supports a
+                        different mode and safeguard per star, and the
+                        Optimizer finds the plan with the best odds of hitting
+                        your target star for your meso budget and spares. All
+                        rates and costs are confirmed in-game; events, MVP
+                        discounts, and star catching are supported.
+                    </p>
+                </div>
+            </section>
         </main>
 
         <script src="rates.js"></script>
