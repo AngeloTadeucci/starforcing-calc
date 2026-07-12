@@ -3,7 +3,8 @@
 // under the same rates/costs the simulator uses.
 //
 // The strategy modeled: star force a cheap fodder item of a lower level with
-// plain Mode 1, transfer its stars onto the clean target (the transfer eats
+// plain Mode 1 (optionally Safeguarded 15–17★ to trade mesos for fewer fodder
+// booms), transfer its stars onto the clean target (the transfer eats
 // STAR_LOSS stars), then finish the remaining stars on the target with the
 // zero-boom plan — Safeguard 15–17★, Mode 4 18–21★ — so the rare item can
 // never be destroyed. Booms during the fodder climb destroy the fodder
@@ -28,6 +29,16 @@
     return plan;
   }
 
+  // The fodder climb: Mode 1 everywhere (booms only cost cheap copies), with
+  // Safeguard 15–17★ as an opt-in — pricier taps for fewer copies to farm.
+  // Stars without an entry fall through to vanilla Mode 1 in the engine.
+  function fodderPlan(safeguard) {
+    if (!safeguard) return null;
+    const plan = {};
+    for (const s of [15, 16, 17]) plan[s] = { mode: 1, safeguard: true };
+    return plan;
+  }
+
   function metrics(currentStar, targetStar, itemLevel, baseOpts, plan) {
     const opts = Object.assign({}, baseOpts, {
       enhanceMode: 0,
@@ -38,7 +49,7 @@
   }
 
   // params: { itemLevel, fodderLevel, goalStar, fodderPrice, sparePrice,
-  //           baseOpts: { mvp, event, starCatching } }
+  //           fodderSafeguard, baseOpts: { mvp, event, starCatching } }
   // goalStar must be ≤ 22 — the zero-boom plan doesn't exist past 21★, and
   // beyond 22★ every strategy taps the same item identically anyway.
   // fodderPrice / sparePrice are mesos (0 to exclude). The transfer itself is
@@ -63,8 +74,9 @@
     // fodder so the transfer alone reaches the goal with zero taps on the
     // target (the fodder climbs past 21★ at vanilla rates — no modes there).
     const strategies = [];
+    const climb = fodderPlan(params.fodderSafeguard);
     for (let T = 16; T <= goalStar + STAR_LOSS; T++) {
-      const fodder = metrics(0, T, fodderLevel, baseOpts, null);
+      const fodder = metrics(0, T, fodderLevel, baseOpts, climb);
       const startStar = T - STAR_LOSS;
       const finish =
         startStar >= goalStar
@@ -109,5 +121,5 @@
     };
   }
 
-  SF.fodder = { compare, zeroBoomPlan, STAR_LOSS, MAX_LEVEL_GAP };
+  SF.fodder = { compare, zeroBoomPlan, fodderPlan, STAR_LOSS, MAX_LEVEL_GAP };
 })(window);

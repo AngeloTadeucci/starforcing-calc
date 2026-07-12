@@ -43,6 +43,20 @@
     itemLevel: 200, fodderLevel: 150, goalStar: 22,
     baseOpts: { mvp: "none", event: "none", starCatching: true },
   }).levelGapOk === false);
+  // Safeguarding the fodder at 15–17★: pricier climb, fewer fodder booms —
+  // strictly fewer copies and strictly more fodder mesos on every row that
+  // taps 15–17★.
+  const frSg = SF.fodder.compare({
+    itemLevel: 160, fodderLevel: 150, goalStar: 22, fodderSafeguard: true,
+    baseOpts: { mvp: "none", event: "none", starCatching: true },
+  });
+  const t21sg = frSg.strategies.find((s) => s.transferAt === 21);
+  check("fodder: SG fodder uses fewer copies", t21sg.copies < t21.copies);
+  check("fodder: SG fodder climb costs more", t21sg.fodderMesos > t21.fodderMesos);
+  // Exactly 1 copy up to a float epsilon — star catching renormalizes
+  // maintain/boom and leaves b ≈ 1e-17 instead of a clean 0.
+  check("fodder: SG fodder can't boom below 18★",
+    Math.abs(frSg.strategies.find((s) => s.transferAt === 18).copies - 1) < 1e-9);
   // Boom-reduction events + MVP make the 23★ overshoot ~tie 21★ on price
   // (within ~1%); the pick must break toward fewer copies, not the raw min.
   const frTie = SF.fodder.compare({

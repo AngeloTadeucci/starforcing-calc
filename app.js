@@ -641,7 +641,10 @@
     // belong to the Quick tab only; Per-star, Optimize and Fodder replace the
     // right column with their own panels.
     $("enhanceModeRow").classList.toggle("hidden", !quick);
-    $("safeguardField").classList.toggle("hidden", !quick);
+    // The Fodder tab reuses the global Safeguard checkbox (next to Star
+    // catching) to opt the fodder climb into Safeguard 15–17★, so keep it
+    // visible there too.
+    $("safeguardField").classList.toggle("hidden", !(quick || fodder));
     $("referencePanels").classList.toggle("hidden", !quick);
     $("perStarPanel").classList.toggle("hidden", !perStar);
     $("optimizePanel").classList.toggle("hidden", !optimize);
@@ -887,6 +890,8 @@
     if (!s) return;
     if (Number.isFinite(s.price)) $("fodderPrice").value = s.price;
     if (Number.isFinite(s.spare)) $("sparePrice").value = s.spare;
+    $("fodderPricesToggle").checked = !!s.prices;
+    $("fodderPrices").classList.toggle("hidden", !s.prices);
   }
 
   function saveFodderSettings() {
@@ -896,18 +901,24 @@
         JSON.stringify({
           price: parseFloat($("fodderPrice").value),
           spare: parseFloat($("sparePrice").value),
+          prices: $("fodderPricesToggle").checked,
         }),
       );
     } catch (e) {}
   }
 
-  // The fodder level tracks the item level at the maximum transfer gap (−10);
-  // an explicit edit sticks until the item level changes again.
-  function syncFodderLevelDefault() {
+  // The fodder level isn't a choice — the item level minus the maximum
+  // transfer gap is both the lowest level a transfer accepts and the cheapest
+  // to tap (base cost grows with item level), so it's derived and displayed.
+  function fodderLevelFor(itemLevel) {
+    return Math.max(1, itemLevel - SF.fodder.MAX_LEVEL_GAP);
+  }
+
+  function syncFodderLevel() {
     const itemLevel = readItemLevel();
-    if (Number.isFinite(itemLevel)) {
-      $("fodderLevel").value = Math.max(1, itemLevel - SF.fodder.MAX_LEVEL_GAP);
-    }
+    $("fodderLevelValue").textContent = Number.isFinite(itemLevel)
+      ? fodderLevelFor(itemLevel)
+      : "—";
   }
 
   // Millions-denominated optional money field: blank/invalid reads as 0.
@@ -926,16 +937,12 @@
     if (activeTab !== "fodder") return;
 
     const itemLevel = readItemLevel();
-    const fodderLevel = parseInt($("fodderLevel").value, 10);
     const formTarget = parseInt($("targetStar").value, 10);
     if (!Number.isFinite(itemLevel) || itemLevel < 1 || itemLevel > 300) {
       fodderError("Item level must be between 1 and 300.");
       return;
     }
-    if (!Number.isFinite(fodderLevel) || fodderLevel < 1 || fodderLevel > 300) {
-      fodderError("Fodder item level must be between 1 and 300.");
-      return;
-    }
+    const fodderLevel = fodderLevelFor(itemLevel);
     if (!Number.isFinite(formTarget) || formTarget < 2 || formTarget > 30) {
       fodderError("Target ★ must be between 2 and 30.");
       return;
@@ -950,19 +957,28 @@
       return;
     }
 
+    const usePrices = $("fodderPricesToggle").checked;
+    const fodderSafeguard = $("safeguard").checked;
     const result = SF.fodder.compare({
       itemLevel,
       fodderLevel,
       goalStar,
-      fodderPrice: readMillions("fodderPrice"),
-      sparePrice: readMillions("sparePrice"),
+      fodderPrice: usePrices ? readMillions("fodderPrice") : 0,
+      sparePrice: usePrices ? readMillions("sparePrice") : 0,
+      fodderSafeguard,
       baseOpts: {
         mvp: $("mvp").value,
         event: $("event").value,
         starCatching: $("starCatching").checked,
       },
     });
-    renderFodderResult(result, { goalStar, formTarget, itemLevel, fodderLevel });
+    renderFodderResult(result, {
+      goalStar,
+      formTarget,
+      itemLevel,
+      fodderLevel,
+      fodderSafeguard,
+    });
   }
 
   function renderFodderResult(result, ctx) {
@@ -983,11 +999,39 @@
         .join("") +
       "</div>";
 
+    // The plain-English version of the best row: which buttons to press on
+    // which item, in order.
+    const steps = [];
+    steps.push(
+      `Tap a <strong>level ${ctx.fodderLevel} fodder</strong> to <strong>${best.transferAt}★</strong> on <strong>Mode 1</strong>${
+        ctx.fodderSafeguard ? " with <strong>Safeguard</strong> at 15★–17★" : ""
+      }.`,
+    );
+    steps.push(
+      `<strong>Equipment transfer</strong> the fodder onto your real item.`,
+    );
+    if (best.startStar >= ctx.goalStar) {
+      steps.push(
+        `Done — <strong>zero taps</strong> on your real item, so it can never be destroyed.`,
+      );
+    } else {
+      const parts = [];
+      if (best.startStar <= 17) parts.push("<strong>Mode 1 + Safeguard</strong>");
+      if (Math.max(best.startStar, 18) <= ctx.goalStar - 1)
+        parts.push("<strong>Mode 4</strong>");
+      steps.push(
+        `Finish your real item <strong>${best.startStar}★ → ${ctx.goalStar}★</strong> with ${parts.join(
+          ", then ",
+        )}, so it can never be destroyed.`,
+      );
+    }
+    const howTo =
+      `<ol class="fodder-steps">` +
+      steps.map((s) => `<li>${s}</li>`).join("") +
+      `</ol>`;
+
     // Only conditional warnings — the cards and the table carry the verdict.
     let notes = "";
-    if (!result.levelGapOk) {
-      notes += `<p class="opt-note opt-warn">Transfers accept a fodder 1–${SF.fodder.MAX_LEVEL_GAP} levels below the target — level ${ctx.fodderLevel} fodder can't transfer onto a level ${ctx.itemLevel} item.</p>`;
-    }
     if (ctx.formTarget > ctx.goalStar) {
       notes += `<p class="opt-note">Compared up to ${ctx.goalStar}★ — past that every plan taps the same item.</p>`;
     }
@@ -1074,7 +1118,7 @@
       <tbody>${rows}</tbody>
     </table>`;
 
-    $("fodderResult").innerHTML = summary + notes + table;
+    $("fodderResult").innerHTML = summary + howTo + notes + table;
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -1088,16 +1132,17 @@
     $("itemLevel").addEventListener("change", () => {
       syncItemLevelCustom();
       syncEnhanceMode();
-      syncFodderLevelDefault();
+      syncFodderLevel();
     });
     $("itemLevelCustom").addEventListener("input", () => {
       syncEnhanceMode();
-      syncFodderLevelDefault();
+      syncFodderLevel();
     });
     $("starCatching").addEventListener("change", syncEnhanceMode);
     $("safeguard").addEventListener("change", () => {
       syncEnhanceMode();
       syncBoomTable();
+      syncFodder();
     });
     // Tabs + per-star matrix.
     $("tab-quick").addEventListener("click", () => setTab("quick"));
@@ -1136,15 +1181,22 @@
     loadOptSettings();
 
     // Fodder tab controls — closed-form, so recompute live on every change.
-    $("fodderLevel").addEventListener("input", syncFodder);
     ["fodderPrice", "sparePrice"].forEach((id) =>
       $(id).addEventListener("input", () => {
         saveFodderSettings();
         syncFodder();
       }),
     );
+    $("fodderPricesToggle").addEventListener("change", () => {
+      $("fodderPrices").classList.toggle(
+        "hidden",
+        !$("fodderPricesToggle").checked,
+      );
+      saveFodderSettings();
+      syncFodder();
+    });
     loadFodderSettings();
-    syncFodderLevelDefault();
+    syncFodderLevel();
 
     // Theme: the toggle stores an explicit pick; OS switches only follow
     // through while the user hasn't made one.

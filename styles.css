@@ -1231,6 +1231,75 @@ th[data-mode-col].active-mode-col {
   padding-bottom: 16px;
 }
 
+/* The derived level and the price toggle share one row, both grouped at the
+   start. No flex-wrap — otherwise the web-font swap (fallback → wider IBM Plex)
+   would tip the toggle onto its own line one frame in. */
+.fodder-top-row {
+  display: flex;
+  align-items: center;
+  gap: 14px 22px;
+}
+
+/* Checkbox + "Set item prices" centered together on the first line, with the
+   hint dropped onto the line below it. A 2-column grid keeps the checkbox
+   vertically centered against the label text only, not the whole two-line
+   block. */
+.fodder-top-row .check {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 3px;
+  min-width: 0;
+}
+
+.fodder-top-row .check .hint {
+  grid-column: 2;
+  grid-row: 2;
+  margin-left: 0;
+}
+
+/* The fodder level is derived (item level − max transfer gap), not chosen —
+   shown as a fact. */
+.fodder-level {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fodder-level-value {
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--accent-2);
+  font-feature-settings: "tnum" 1;
+}
+
+/* Price inputs live behind the "Set item prices" toggle. */
+.fodder-prices {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Step-by-step tap plan for the best strategy. */
+.fodder-steps {
+  margin: 12px 0 0;
+  padding: 0 16px 0 34px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.fodder-steps li + li {
+  margin-top: 7px;
+}
+
+.fodder-steps strong {
+  font-weight: 600;
+  color: var(--accent-2);
+}
+
 /* Strategy labels are sentences, not star ranges — let them wrap. */
 .fodder-table tbody td:first-child {
   white-space: normal;
@@ -1266,5 +1335,8 @@ th[data-mode-col].active-mode-col {
   }
   .opt-note {
     padding: 10px 12px 0;
+  }
+  .fodder-steps {
+    padding: 0 12px 0 30px;
   }
 }
