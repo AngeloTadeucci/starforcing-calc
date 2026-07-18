@@ -269,7 +269,7 @@
       }
       const b = buckets[i];
       const range =
-        opts.singleValue || b.from === b.to
+        b.from === b.to
           ? formatX(b.from)
           : `${formatX(b.from)} – ${formatX(b.to)}`;
       const pct = ((b.count / opts.total) * 100).toFixed(1);
@@ -301,7 +301,7 @@
       "histogram-booms",
       stats.boomBuckets,
       (n) => String(Math.round(n)),
-      { total: stats.trials, singleValue: true },
+      { total: stats.trials },
     );
   }
 

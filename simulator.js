@@ -280,19 +280,25 @@
     return buckets;
   }
 
+  // Integer data (boom counts): every value gets its own exact bar. When the
+  // span exceeds maxBuckets, only the sparse tail is collapsed into one final
+  // range bucket — never the low counts. The old fallback to continuous
+  // bucketize() used a fractional bar width, silently merging 0 and 1 booms
+  // into a single bar labelled "0" whenever max booms passed the cap (#4).
   function bucketizeIntegers(sortedAsc, maxBuckets) {
     if (sortedAsc.length === 0) return [];
     const min = sortedAsc[0];
     const max = sortedAsc[sortedAsc.length - 1];
     const span = max - min + 1;
-    if (span <= maxBuckets) {
-      const buckets = [];
-      for (let v = min; v <= max; v++)
-        buckets.push({ from: v, to: v, count: 0 });
-      for (const v of sortedAsc) buckets[v - min].count += 1;
-      return buckets;
-    }
-    return bucketize(sortedAsc, maxBuckets);
+    const singles = span <= maxBuckets ? span : maxBuckets - 1;
+    const buckets = [];
+    for (let v = min; v < min + singles; v++)
+      buckets.push({ from: v, to: v, count: 0 });
+    if (span > maxBuckets)
+      buckets.push({ from: min + singles, to: max, count: 0 });
+    for (const v of sortedAsc)
+      buckets[Math.min(v - min, buckets.length - 1)].count += 1;
+    return buckets;
   }
 
   function runTrials(input, options) {
@@ -395,5 +401,6 @@
   global.SF.simulateOnce = simulateOnce;
   global.SF.buildStarTables = buildStarTables;
   global.SF.simulateOnceFast = simulateOnceFast;
+  global.SF.bucketizeIntegers = bucketizeIntegers;
   global.SF.runTrials = runTrials;
 })(window);

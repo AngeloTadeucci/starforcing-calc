@@ -64,5 +64,18 @@
     baseOpts: { mvp: "diamond", event: "shiningStarForce", starCatching: true },
   });
   check("fodder: near-tie breaks toward fewer copies (21★, not 23★)", frTie.best.transferAt === 21);
+
+  // Issue #4: boom-count buckets must stay integer-exact for low counts even
+  // when the span exceeds the bucket cap. The old continuous fallback merged
+  // 0 and 1 booms into one bar labelled "0" once max booms passed 30.
+  const wide = [];
+  for (let v = 0; v <= 50; v++) wide.push(v, v); // span 51 > 30, two of each
+  const ib = SF.bucketizeIntegers(wide, 30);
+  check("hist: bucket count capped", ib.length === 30);
+  check("hist: 0-boom bar stays exact", ib[0].from === 0 && ib[0].to === 0 && ib[0].count === 2);
+  check("hist: singles cover 0..28", ib[28].from === 28 && ib[28].to === 28 && ib[28].count === 2);
+  check("hist: tail collapses into 29–50", ib[29].from === 29 && ib[29].to === 50 && ib[29].count === 44);
+  const narrow = SF.bucketizeIntegers([0, 1, 1, 3], 30);
+  check("hist: narrow span keeps one bar per integer", narrow.length === 4 && narrow[1].count === 2 && narrow[2].count === 0);
 </script>
 </body></html>
