@@ -558,7 +558,7 @@
           ? `<input type="checkbox" class="plan-sg" data-star="${star}"${p.safeguard ? " checked" : ""} aria-label="Safeguard ${star}★" />`
           : `<span class="num zero">—</span>`;
       return `<tr data-star="${star}">
-        <td>${star} → ${star + 1}</td>
+        <td>${star} → ${star + 1}<span class="plan-tag hidden" title="You only reach this star after a boom drops the item below your current ★.">re-climb</span></td>
         <td><select class="plan-mode" data-star="${star}" aria-label="Mode for ${star}★">${modeOpts}</select></td>
         <td>${sgCell}</td>
         <td class="num plan-boom-cell"></td>
@@ -580,7 +580,9 @@
 
   // Refresh each row's derived UI: the safeguard checkbox is only enabled on Mode
   // 1, and the boom%/cost columns are computed through the same engine the
-  // simulation uses. Rows outside the current → target range are greyed (off).
+  // simulation uses. Rows the run can never attempt are greyed (off); rows below
+  // the current star that a boom can drop you onto stay live and tagged
+  // "re-climb", since their mode is what you climb back up on.
   function syncPlanTable() {
     const itemLevel = readItemLevel() || 200;
     const current = parseInt($("currentStar").value, 10);
@@ -590,6 +592,16 @@
       event: $("event").value,
       starCatching: $("starCatching").checked,
     };
+
+    const rangeOk =
+      Number.isFinite(current) && Number.isFinite(target) && target > current;
+    const floor = rangeOk
+      ? SF.reachableFloor(
+          current,
+          target,
+          Object.assign({ starPlan: readStarPlan() }, baseOpts),
+        )
+      : null;
 
     PLAN_STARS.forEach((star) => {
       const row = document.querySelector(`tr[data-star="${star}"]`);
@@ -610,13 +622,12 @@
         `<span class="plan-boom${boomPct === 0 ? " zero" : ""}">${boomPct.toFixed(2)}%</span>`;
       row.querySelector(".plan-cost-cell").textContent = fmtMesos(cost);
 
-      const off = !(
-        Number.isFinite(current) &&
-        Number.isFinite(target) &&
-        star >= current &&
-        star < target
-      );
+      const off = !rangeOk || star < floor || star >= target;
       row.classList.toggle("plan-row--off", off);
+      row.querySelector(".plan-tag").classList.toggle(
+        "hidden",
+        off || star >= current,
+      );
     });
   }
 
@@ -811,6 +822,10 @@
     const baseOpts = readOptBaseOpts();
     const planOpts = Object.assign({ starPlan: plan }, baseOpts);
     const stars = SF.optimizer.optimizableStars(targetStar);
+    // Stars below the reachable floor never come up, even on a boom re-climb;
+    // everything at or above it does, so it is greyed by reachability rather
+    // than by "is it under the current star".
+    const floor = SF.reachableFloor(currentStar, targetStar, planOpts);
 
     const rows = stars
       .map((star) => {
@@ -822,11 +837,13 @@
         const modeLabel =
           ch.mode === 1 && ch.safeguard ? "Mode 1 + SG" : "Mode " + ch.mode;
         const boomPct = boom * 100;
-        // Rows below the current star never start in the run; they only matter
-        // on a boom re-climb, so grey them like the matrix does.
-        const off = star < currentStar;
+        const off = star < floor;
+        const tag =
+          !off && star < currentStar
+            ? '<span class="plan-tag">re-climb</span>'
+            : "";
         return `<tr${off ? ' class="plan-row--off"' : ""}>
-          <td>${star} → ${star + 1}</td>
+          <td>${star} → ${star + 1}${tag}</td>
           <td>${modeLabel}</td>
           <td class="num"><span class="plan-boom${boomPct === 0 ? " zero" : ""}">${boomPct.toFixed(2)}%</span></td>
           <td class="num">${fmtMesos(cost)}</td>

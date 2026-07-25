@@ -20,6 +20,29 @@
     return 20;
   }
 
+  // The lowest star a run can ever attempt. It starts at currentStar, but a boom
+  // drops the item beneath it (22★ falls to 17★, 21★ falls to 12★) and the
+  // re-climb passes back through those stars, so their mode/safeguard still
+  // shapes the run. Walks the drop targets to a fixpoint under `opts` (plan
+  // included): a star that cannot boom is a floor the item never falls through,
+  // so Safeguard/Mode 4 genuinely shrink the range instead of just the odds.
+  function reachableFloor(currentStar, targetStar, opts) {
+    let floor = Math.min(currentStar, targetStar);
+    const ff = opts && opts.event === "fivetenfifteen";
+    for (;;) {
+      let next = floor;
+      for (let s = floor; s < targetStar; s++) {
+        // The 5/10/15★ guarantee is applied by the sim loop, not by
+        // applyRateModifiers, so those stars never boom regardless of rates.
+        if (ff && (s === 5 || s === 10 || s === 15)) continue;
+        const [, , boom] = applyRateModifiers(s, opts);
+        if (boom > 0) next = Math.min(next, boomDropStar(s));
+      }
+      if (next === floor) return floor;
+      floor = next;
+    }
+  }
+
   // Resolve the { mode, safeguard } decision for a single star. When a per-star
   // plan is supplied (opts.starPlan — the "Per-star" tab), each star reads its own
   // entry; otherwise every star shares the global slider/checkbox scalars, which
@@ -395,6 +418,7 @@
   global.SF = global.SF || {};
   global.SF.baseCost = baseCost;
   global.SF.boomDropStar = boomDropStar;
+  global.SF.reachableFloor = reachableFloor;
   global.SF.enhanceEntry = enhanceEntry;
   global.SF.applyRateModifiers = applyRateModifiers;
   global.SF.costMultiplier = costMultiplier;

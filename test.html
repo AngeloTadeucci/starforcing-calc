@@ -77,5 +77,56 @@
   check("hist: tail collapses into 29–50", ib[29].from === 29 && ib[29].to === 50 && ib[29].count === 44);
   const narrow = SF.bucketizeIntegers([0, 1, 1, 3], 30);
   check("hist: narrow span keeps one bar per integer", narrow.length === 4 && narrow[1].count === 2 && narrow[2].count === 0);
+
+  // reachableFloor: the lowest star a run can attempt once boom re-climbs are
+  // followed to a fixpoint. This is what decides which per-star rows stay live
+  // when the current ★ is already above 21. Each expectation is cross-checked
+  // below against the lowest star the real sim loop actually visits.
+  const floorBase = { mvp: "none", event: "none", starCatching: true };
+  const mkPlan = (fn) => {
+    const p = {};
+    [15, 16, 17, 18, 19, 20, 21].forEach((s) => (p[s] = fn(s)));
+    return p;
+  };
+  const fOpts = (p) => Object.assign({ starPlan: p }, floorBase);
+  const pVanilla = mkPlan(() => ({ mode: 1, safeguard: false }));
+  const pSg = mkPlan((s) => ({ mode: 1, safeguard: s <= 17 }));
+  const pNoBoom = mkPlan((s) => (s <= 17 ? { mode: 1, safeguard: true } : { mode: 4, safeguard: false }));
+  const floorCases = [
+    // 22★ booms to 17★, and a boom at 18/19★ on the way back up drops to 12★.
+    ["22→23 vanilla", 22, 23, pVanilla, 12],
+    // Safeguard alone doesn't hold: 18–21★ can still boom to 12★.
+    ["22→23 SG 15–17 only", 22, 23, pSg, 12],
+    // SG 15–17 + Mode 4 on 18–21: nothing in [17,22) booms, so 17★ is a hard floor.
+    ["22→23 SG + Mode 4", 22, 23, pNoBoom, 17],
+    // 23★ booms to 19★, but the re-climb passes 22★, which drops to 17★.
+    ["23→24 SG + Mode 4", 23, 24, pNoBoom, 17],
+    ["26→27 SG + Mode 4", 26, 27, pNoBoom, 17],
+    ["17→22 vanilla", 17, 22, pVanilla, 12],
+    ["17→22 SG + Mode 4", 17, 22, pNoBoom, 17],
+    ["12→15 vanilla", 12, 15, pVanilla, 12],
+  ];
+  floorCases.forEach(([name, cur, tgt, p, want]) => {
+    check("floor: " + name + " → " + want + "★", SF.reachableFloor(cur, tgt, fOpts(p)) === want);
+  });
+  // The floor must be exactly the lowest star the sim visits: never above it
+  // (rows would be greyed that the run really uses) and never below it (rows
+  // would be shown live that it can't reach).
+  floorCases.forEach(([name, cur, tgt, p]) => {
+    const t = SF.buildStarTables(tgt, 160, fOpts(p));
+    let lo = cur;
+    for (let i = 0; i < 20000; i++) {
+      let star = cur;
+      while (star < tgt) {
+        if (t.guaranteed[star]) { star++; continue; }
+        const r = Math.random();
+        if (r < t.succ[star]) star++;
+        else if (r < t.succMaint[star]) { /* maintain */ }
+        else star = t.boomTo[star];
+        if (star < lo) lo = star;
+      }
+    }
+    check("floor: " + name + " matches sim (" + lo + "★)", lo === SF.reachableFloor(cur, tgt, fOpts(p)));
+  });
 </script>
 </body></html>

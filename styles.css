@@ -1093,10 +1093,25 @@ th[data-mode-col].active-mode-col {
   cursor: not-allowed;
 }
 
-/* Rows whose star sits outside the current → target range take no part in the
-   run; greyed and inert so the active range reads clearly. */
+/* Rows the run can never attempt (below the boom floor, or at/above target)
+   take no part in it; greyed so the active range reads clearly. */
 .plan-row--off td {
   opacity: 0.4;
+}
+
+/* Marks a live row that sits below the current star: reached only by booming
+   down to it, so its mode is what the re-climb runs on. */
+.plan-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  vertical-align: 1px;
 }
 
 .plan-boom {
