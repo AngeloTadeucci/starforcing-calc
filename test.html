@@ -65,6 +65,34 @@
   });
   check("fodder: near-tie breaks toward fewer copies (21★, not 23★)", frTie.best.transferAt === 21);
 
+  // Issue #5: the MVP discount now covers every tap up to 17★ (so it applies at
+  // 16→17 and stops at 17→18), and it stacks multiplicatively with the 30%-off
+  // event rather than additively. Anchored on the in-game reading from the
+  // issue: lvl-200 item, 16→17 during Shining Star Force with Silver MVP,
+  // 83,999,600 base → 57,035,729 charged, i.e. × 0.70 × 0.97 = × 0.679.
+  const mvpOpts = (mvp, event) => ({ mvp, event: event || "none", enhanceMode: 0 });
+  check("mvp: lvl-200 16★ base is 83,999,600", SF.baseCost(16, 200) === 83999600);
+  check("mvp: silver applies at 16★", near(SF.costMultiplier(16, mvpOpts("silver")), 0.97, 1e-12));
+  check("mvp: silver still applies at 15★", near(SF.costMultiplier(15, mvpOpts("silver")), 0.97, 1e-12));
+  check("mvp: silver stops at 17★", SF.costMultiplier(17, mvpOpts("silver")) === 1);
+  check("mvp: gold/diamond scale at 16★",
+    near(SF.costMultiplier(16, mvpOpts("gold")), 0.95, 1e-12) &&
+    near(SF.costMultiplier(16, mvpOpts("diamond")), 0.9, 1e-12));
+  check("mvp: stacks multiplicatively with 30% off, not additively",
+    near(SF.costMultiplier(16, mvpOpts("silver", "shiningStarForce")), 0.679, 1e-12));
+  check("mvp: 17★ keeps the event discount without MVP",
+    near(SF.costMultiplier(17, mvpOpts("silver", "shiningStarForce")), 0.7, 1e-12));
+  // Within a meso of the in-game price — the engine rounds to nearest where the
+  // client appears to round up, which is invisible at simulation scale.
+  check("mvp: 16→17 SSF + silver ≈ 57,035,729 in-game",
+    Math.abs(SF.baseCost(16, 200) * SF.costMultiplier(16, mvpOpts("silver", "shiningStarForce")) - 57035729) <= 1);
+  // Enhancement Modes take the same proportional cut (mode mult × 0.97), and
+  // the Safeguard premium stays undiscounted, exactly as the event discount does.
+  check("mvp: Mode 3 at 16★ takes the same proportional cut",
+    near(SF.costMultiplier(16, { mvp: "silver", event: "none", enhanceMode: 3 }), 2.5 * 0.97, 1e-12));
+  check("mvp: Safeguard premium is not discounted",
+    near(SF.costMultiplier(16, { mvp: "silver", event: "none", enhanceMode: 0, safeguard: true }), 0.97 + 2, 1e-12));
+
   // Issue #4: boom-count buckets must stay integer-exact for low counts even
   // when the span exceeds the bucket cap. The old continuous fallback merged
   // 0 and 1 booms into one bar labelled "0" once max booms passed 30.

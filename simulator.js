@@ -132,6 +132,18 @@
     return [s, m, b];
   }
 
+  // MVP star force discount, by tier. It covers every tap up to 17★ — i.e. any
+  // tap whose *current* star is 16 or below, so 16→17 is discounted and 17→18
+  // is not. Confirmed in-game 2026-08-02 and on Nexon's MVP service page; the
+  // old cutoff (taps up to 16★) is what this replaces.
+  const MVP_DISCOUNT = { silver: 0.03, gold: 0.05, diamond: 0.1 };
+  const MVP_MAX_STAR = 16;
+
+  function mvpDiscount(currentStar, opts) {
+    if (currentStar > MVP_MAX_STAR) return 0;
+    return MVP_DISCOUNT[opts.mvp] || 0;
+  }
+
   function costMultiplier(currentStar, opts) {
     const plan = planFor(currentStar, opts);
     const sgOverride =
@@ -142,11 +154,6 @@
     const em = sgOverride ? null : enhanceEntry(currentStar, opts);
     let mult = em ? em.mult : 1;
 
-    if (currentStar <= 15) {
-      if (opts.mvp === "silver") mult -= 0.03;
-      if (opts.mvp === "gold") mult -= 0.05;
-      if (opts.mvp === "diamond") mult -= 0.1;
-    }
     // Event cost discount (30% off — thirtyOff and shiningStarForce both grant it).
     // Confirmed in-game during SSF (2026-06): the discount is a flat 30% off the
     // cost you actually pay — i.e. the full enhanced cost — so modes 2–4 scale the
@@ -164,6 +171,15 @@
         mult -= 0.3;
       }
     }
+
+    // MVP stacks *multiplicatively* with the event discount, not additively.
+    // Confirmed in-game 2026-08-02 (issue #5): a lvl-200 item at 16→17 during
+    // Shining Star Force with Silver MVP costs 57,035,729, which is the
+    // 83,999,600 base × 0.70 × 0.97. Stacking additively (1 − 0.30 − 0.03)
+    // would have charged 56,279,732. It sits before the Safeguard premium for
+    // the same reason the event discount does: the +2 is not discounted.
+    const mvp = mvpDiscount(currentStar, opts);
+    if (mvp) mult *= 1 - mvp;
 
     if (!em) {
       const sgActive =
