@@ -121,14 +121,6 @@
       }
     }
 
-    if (opts.starCatching) {
-      s = Math.min(1, s * 1.05);
-      const left = 1 - s;
-      const denom = m + b;
-      m = denom > 0 ? (m * left) / denom : left;
-      b = left - m;
-    }
-
     return [s, m, b];
   }
 
@@ -353,7 +345,6 @@
     return new Promise((resolve) => {
       const { currentStar, targetStar, itemLevel, trials } = input;
       const opts = {
-        starCatching: !!input.starCatching,
         safeguard: !!input.safeguard,
         mvp: input.mvp || "none",
         event: input.event || "none",

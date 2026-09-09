@@ -223,7 +223,6 @@
   // the same fast trial kernel the main simulation uses.
   function successProb(input, budgetMesos, spares, trials) {
     const opts = {
-      starCatching: !!input.starCatching,
       safeguard: !!input.safeguard,
       mvp: input.mvp || "none",
       event: input.event || "none",

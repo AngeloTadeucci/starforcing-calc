@@ -49,7 +49,7 @@
   }
 
   // params: { itemLevel, fodderLevel, goalStar, fodderPrice, sparePrice,
-  //           fodderSafeguard, baseOpts: { mvp, event, starCatching } }
+  //           fodderSafeguard, baseOpts: { mvp, event } }
   // goalStar must be ≤ 22 — the zero-boom plan doesn't exist past 21★, and
   // beyond 22★ every strategy taps the same item identically anyway.
   // fodderPrice / sparePrice are mesos (0 to exclude). The transfer itself is

@@ -20,7 +20,7 @@
   const near = (a, b, tol) => Math.abs(a - b) <= tol * Math.abs(b);
   const fr = SF.fodder.compare({
     itemLevel: 160, fodderLevel: 150, goalStar: 22,
-    baseOpts: { mvp: "none", event: "none", starCatching: true },
+    baseOpts: { mvp: "none", event: "none" },
   });
   check("fodder: rawCheap ~16.85B", near(fr.rawCheap.total, 16.85e9, 0.001));
   check("fodder: rawZero ~52.14B", near(fr.rawZero.total, 52.14e9, 0.001));
@@ -34,34 +34,33 @@
   const fr2 = SF.fodder.compare({
     itemLevel: 160, fodderLevel: 150, goalStar: 22,
     fodderPrice: 100e6, sparePrice: 2e9,
-    baseOpts: { mvp: "none", event: "none", starCatching: true },
+    baseOpts: { mvp: "none", event: "none" },
   });
   const t21p = fr2.strategies.find((s) => s.transferAt === 21);
   check("fodder: copy price folds into totals", near(t21p.total, t21.total + 100e6 * t21.copies, 1e-9));
   check("fodder: spare price folds into raw", near(fr2.rawCheap.total, fr.rawCheap.total + fr.rawCheap.spares * 2e9, 1e-9));
   check("fodder: level gap >10 flagged", SF.fodder.compare({
     itemLevel: 200, fodderLevel: 150, goalStar: 22,
-    baseOpts: { mvp: "none", event: "none", starCatching: true },
+    baseOpts: { mvp: "none", event: "none" },
   }).levelGapOk === false);
   // Safeguarding the fodder at 15–17★: pricier climb, fewer fodder booms —
   // strictly fewer copies and strictly more fodder mesos on every row that
   // taps 15–17★.
   const frSg = SF.fodder.compare({
     itemLevel: 160, fodderLevel: 150, goalStar: 22, fodderSafeguard: true,
-    baseOpts: { mvp: "none", event: "none", starCatching: true },
+    baseOpts: { mvp: "none", event: "none" },
   });
   const t21sg = frSg.strategies.find((s) => s.transferAt === 21);
   check("fodder: SG fodder uses fewer copies", t21sg.copies < t21.copies);
   check("fodder: SG fodder climb costs more", t21sg.fodderMesos > t21.fodderMesos);
-  // Exactly 1 copy up to a float epsilon — star catching renormalizes
-  // maintain/boom and leaves b ≈ 1e-17 instead of a clean 0.
+  // Exactly 1 copy, up to a float epsilon.
   check("fodder: SG fodder can't boom below 18★",
     Math.abs(frSg.strategies.find((s) => s.transferAt === 18).copies - 1) < 1e-9);
   // Boom-reduction events + MVP make the 23★ overshoot ~tie 21★ on price
   // (within ~1%); the pick must break toward fewer copies, not the raw min.
   const frTie = SF.fodder.compare({
     itemLevel: 150, fodderLevel: 140, goalStar: 22,
-    baseOpts: { mvp: "diamond", event: "shiningStarForce", starCatching: true },
+    baseOpts: { mvp: "diamond", event: "shiningStarForce" },
   });
   check("fodder: near-tie breaks toward fewer copies (21★, not 23★)", frTie.best.transferAt === 21);
 
@@ -110,7 +109,7 @@
   // followed to a fixpoint. This is what decides which per-star rows stay live
   // when the current ★ is already above 21. Each expectation is cross-checked
   // below against the lowest star the real sim loop actually visits.
-  const floorBase = { mvp: "none", event: "none", starCatching: true };
+  const floorBase = { mvp: "none", event: "none" };
   const mkPlan = (fn) => {
     const p = {};
     [15, 16, 17, 18, 19, 20, 21].forEach((s) => (p[s] = fn(s)));

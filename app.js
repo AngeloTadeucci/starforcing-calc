@@ -102,7 +102,6 @@
       trials: parseInt($("trials").value, 10),
       mvp: $("mvp").value,
       event: $("event").value,
-      starCatching: $("starCatching").checked,
       safeguard: $("safeguard").checked,
       enhanceMode: parseInt($("enhanceMode").value, 10),
     };
@@ -423,7 +422,6 @@
               mvp: $("mvp").value,
               event: $("event").value,
               safeguard: $("safeguard").checked,
-              starCatching: $("starCatching").checked,
             };
             const [s] = SF.applyRateModifiers(star, opts);
             const cost = Math.round(
@@ -590,7 +588,6 @@
     const baseOpts = {
       mvp: $("mvp").value,
       event: $("event").value,
-      starCatching: $("starCatching").checked,
     };
 
     const rangeOk =
@@ -684,7 +681,6 @@
     return {
       mvp: $("mvp").value,
       event: $("event").value,
-      starCatching: $("starCatching").checked,
       enhanceMode: 0,
       safeguard: false,
     };
@@ -986,7 +982,6 @@
       baseOpts: {
         mvp: $("mvp").value,
         event: $("event").value,
-        starCatching: $("starCatching").checked,
       },
     });
     renderFodderResult(result, {
@@ -1155,7 +1150,6 @@
       syncEnhanceMode();
       syncFodderLevel();
     });
-    $("starCatching").addEventListener("change", syncEnhanceMode);
     $("safeguard").addEventListener("change", () => {
       syncEnhanceMode();
       syncBoomTable();
@@ -1172,7 +1166,6 @@
     [
       "event",
       "mvp",
-      "starCatching",
       "itemLevel",
       "itemLevelCustom",
       "currentStar",
